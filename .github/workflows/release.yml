@@ -8,9 +8,12 @@ on:
 jobs:
   release:
     runs-on: windows-latest
+    # Basta il token che GitHub fornisce al workflow: non serve un token personale
+    permissions:
+      contents: write
     env:
-      # Repo pubblico che contiene solo le Release; deve coincidere con RepoUrl in UpdateService.cs
-      RELEASES_REPO: https://github.com/Ciuca1997/EdilManager-releases
+      # Le Release vengono pubblicate in questo stesso repo; deve coincidere con RepoUrl in UpdateService.cs
+      RELEASES_REPO: https://github.com/Ciuca1997/EdilManagerDesktop
     steps:
       - uses: actions/checkout@v5
 
@@ -37,10 +40,10 @@ jobs:
       # Serve per generare gli aggiornamenti "delta"; alla prima release non c'è nulla da scaricare
       - name: Scarica release precedenti
         continue-on-error: true
-        run: vpk download github --repoUrl $env:RELEASES_REPO --token ${{ secrets.RELEASES_TOKEN }}
+        run: vpk download github --repoUrl $env:RELEASES_REPO --token ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pack
         run: vpk pack --packId EdilManager --packVersion $env:VERSION --packDir publish --mainExe EdilManager.exe
 
       - name: Pubblica la Release
-        run: vpk upload github --repoUrl $env:RELEASES_REPO --publish --releaseName "EdilManager $env:VERSION" --tag "v$env:VERSION" --token ${{ secrets.RELEASES_TOKEN }}
+        run: vpk upload github --repoUrl $env:RELEASES_REPO --publish --releaseName "EdilManager $env:VERSION" --tag "v$env:VERSION" --token ${{ secrets.GITHUB_TOKEN }}

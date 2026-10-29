@@ -6,8 +6,8 @@ namespace EdilManager.Desktop.Services;
 
 public sealed class UpdateService(DialogService dialogs)
 {
-    // Repository pubblico che contiene solo le Release (nessun sorgente).
-    private const string RepoUrl = "https://github.com/Ciuca1997/EdilManager-releases";
+    // Repository (pubblico) in cui il workflow di rilascio pubblica le Release.
+    private const string RepoUrl = "https://github.com/Ciuca1997/EdilManagerDesktop";
 
     public async Task CheckAsync(bool interactive)
     {
