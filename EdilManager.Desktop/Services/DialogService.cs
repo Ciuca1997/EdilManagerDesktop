@@ -1,5 +1,6 @@
 using EdilManager.Desktop.ViewModels;
 using MaterialDesignThemes.Wpf;
+using Microsoft.Win32;
 
 namespace EdilManager.Desktop.Services;
 
@@ -19,4 +20,10 @@ public class DialogService
 
     public Task MessageAsync(string title, string message) =>
         ShowAsync(new ConfirmViewModel(this, title, message, "OK", null, false));
+
+    public string[] PickFiles(string filter, string title)
+    {
+        var dialog = new OpenFileDialog { Filter = filter, Title = title, Multiselect = true, CheckFileExists = true };
+        return dialog.ShowDialog() == true ? dialog.FileNames : [];
+    }
 }

@@ -62,12 +62,18 @@ public partial class App : Application
         sc.AddDbContextFactory<ApplicationDbContext>(o => o.UseSqlite($"Data Source={AppPaths.DatabasePath}"));
         sc.AddSingleton<DipendenteService>();
         sc.AddSingleton<PresenzaService>();
+        sc.AddSingleton<CantiereService>();
+        sc.AddSingleton<FatturaService>();
+        sc.AddSingleton<DashboardService>();
 
         sc.AddSingleton<DialogService>();
         sc.AddSingleton<UpdateService>();
         sc.AddSingleton<MainViewModel>();
         sc.AddSingleton<INavigationService>(sp => sp.GetRequiredService<MainViewModel>());
+        sc.AddTransient<DashboardViewModel>();
         sc.AddTransient<DipendentiViewModel>();
+        sc.AddTransient<FattureViewModel>();
+        sc.AddTransient<CantieriViewModel>();
         sc.AddSingleton<MainWindow>();
 
         return sc.BuildServiceProvider();

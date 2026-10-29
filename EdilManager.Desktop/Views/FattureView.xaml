@@ -1,0 +1,55 @@
+<UserControl x:Class="EdilManager.Desktop.Views.FattureView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <DockPanel>
+        <Grid DockPanel.Dock="Top" Margin="24,16">
+            <TextBlock Text="Fatture" Style="{StaticResource PageTitle}" />
+            <Button HorizontalAlignment="Right" Command="{Binding ImportXmlCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileUploadOutline" VerticalAlignment="Center" />
+                    <TextBlock Text="Importa XML" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
+        <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
+
+        <Grid Margin="24,8,24,16">
+            <ProgressBar IsIndeterminate="True" Style="{StaticResource MaterialDesignCircularProgressBar}"
+                         Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+
+            <TextBlock Text="{Binding ErrorMessage, StringFormat=Errore: {0}}" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" TextWrapping="Wrap"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Nessuna fattura." HorizontalAlignment="Center"
+                           Foreground="{StaticResource MutedBrush}" />
+                <TextBlock Text="Usa «Importa XML» per caricare una o più fatture elettroniche."
+                           Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
+                           Foreground="{StaticResource MutedBrush}" />
+            </StackPanel>
+
+            <DataGrid ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
+                      CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                      CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
+                      SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
+                      Background="Transparent" RowBackground="Transparent"
+                      HorizontalGridLinesBrush="{StaticResource DividerBrush}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="120" />
+                    <DataGridTextColumn Header="Numero" Binding="{Binding Numero}" Width="110" />
+                    <DataGridTextColumn Header="Fornitore" Binding="{Binding Fornitore}" Width="*" />
+                    <DataGridTextColumn Header="Cantiere" Binding="{Binding Cantiere}" Width="*" />
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="70" />
+                    <DataGridTextColumn Header="Totale" Binding="{Binding Totale}" Width="130"
+                                        HeaderStyle="{StaticResource RightHeader}"
+                                        ElementStyle="{StaticResource RightCell}" />
+                    <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="110" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DockPanel>
+</UserControl>

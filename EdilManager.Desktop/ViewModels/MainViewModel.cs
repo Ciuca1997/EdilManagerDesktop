@@ -17,10 +17,10 @@ public partial class MainViewModel : ObservableObject, INavigationService
         _updates = updates;
         NavItems =
         [
-            new NavItem("Dashboard", "ViewDashboardOutline", () => new PlaceholderViewModel("Dashboard", "ViewDashboardOutline")),
+            new NavItem("Dashboard", "ViewDashboardOutline", () => services.GetRequiredService<DashboardViewModel>()),
             new NavItem("Dipendenti", "AccountGroupOutline", () => services.GetRequiredService<DipendentiViewModel>()),
-            new NavItem("Fatture", "ReceiptTextOutline", () => new PlaceholderViewModel("Fatture", "ReceiptTextOutline")),
-            new NavItem("Cantieri", "Crane", () => new PlaceholderViewModel("Cantieri", "Crane")),
+            new NavItem("Fatture", "ReceiptTextOutline", () => services.GetRequiredService<FattureViewModel>()),
+            new NavItem("Cantieri", "Crane", () => services.GetRequiredService<CantieriViewModel>()),
         ];
         SelectedNavItem = NavItems[0];
     }
