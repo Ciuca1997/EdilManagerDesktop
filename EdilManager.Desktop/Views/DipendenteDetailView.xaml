@@ -1,0 +1,193 @@
+<UserControl x:Class="EdilManager.Desktop.Views.DipendenteDetailView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <UserControl.Resources>
+        <Style x:Key="RightHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+        <Style x:Key="RightCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <Grid DockPanel.Dock="Top" Margin="16,12,24,12">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Indietro"
+                        Command="{Binding GoBackCommand}">
+                    <materialDesign:PackIcon Kind="ArrowLeft" />
+                </Button>
+                <TextBlock Text="{Binding NomeCompleto}" Style="{StaticResource PageTitle}" Margin="8,0,0,0" />
+            </StackPanel>
+            <Button HorizontalAlignment="Right" Style="{StaticResource MaterialDesignIconButton}" ToolTip="Modifica"
+                    Command="{Binding EditDipendenteCommand}">
+                <materialDesign:PackIcon Kind="PencilOutline" />
+            </Button>
+        </Grid>
+        <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="290" />
+                <ColumnDefinition Width="1" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Background="{StaticResource SidebarBackground}" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="24">
+                    <Border Width="72" Height="72" CornerRadius="36" Background="{StaticResource AvatarBackground}">
+                        <TextBlock Text="{Binding Iniziale}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{StaticResource AvatarForeground}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="{Binding NomeCompleto}" Margin="0,16,0,0" FontSize="16" FontWeight="Bold"
+                               TextAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Dipendente.Mansione}" Margin="0,4,0,0" TextAlignment="Center"
+                               Foreground="{StaticResource MutedBrush}"
+                               Visibility="{Binding Dipendente.Mansione, Converter={StaticResource HasText}}" />
+
+                    <Border Height="1" Margin="0,24,0,12" Background="{StaticResource DividerBrush}" />
+
+                    <StackPanel Margin="0,6">
+                        <TextBlock Text="Codice Fiscale" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Dipendente.CodiceFiscale}" Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,6">
+                        <TextBlock Text="Data di nascita" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Dipendente.DataNascita, StringFormat={}{0:dd/MM/yyyy}}"
+                                   Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,6">
+                        <TextBlock Text="Data assunzione" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Dipendente.DataAssunzione, StringFormat={}{0:dd/MM/yyyy}}"
+                                   Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,6" Visibility="{Binding Dipendente.Livello, Converter={StaticResource HasText}}">
+                        <TextBlock Text="Livello" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Dipendente.Livello}" Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,6" Visibility="{Binding Dipendente.Telefono, Converter={StaticResource HasText}}">
+                        <TextBlock Text="Telefono" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Dipendente.Telefono}" Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,6" Visibility="{Binding Dipendente.Email, Converter={StaticResource HasText}}">
+                        <TextBlock Text="Email" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding Dipendente.Email}" Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Column="1" Background="{StaticResource DividerBrush}" />
+
+            <DockPanel Grid.Column="2" Margin="24">
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,16">
+                    <TextBlock Text="Presenze" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding PreviousMonthCommand}">
+                            <materialDesign:PackIcon Kind="ChevronLeft" />
+                        </Button>
+                        <TextBlock Text="{Binding PeriodoText}" Width="140" TextAlignment="Center" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding NextMonthCommand}">
+                            <materialDesign:PackIcon Kind="ChevronRight" />
+                        </Button>
+                        <Button Margin="16,0,0,0" Command="{Binding AddPresenzaCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                <TextBlock Text="Aggiungi" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" Padding="16,10"
+                        BorderBrush="{StaticResource DividerBrush}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="Totale ore ordinarie: " Foreground="{StaticResource MutedBrush}" />
+                        <TextBlock Text="{Binding TotaleOrdinarie}" FontWeight="Bold" />
+                        <TextBlock Text="Totale straordinarie: " Margin="24,0,0,0" Foreground="{StaticResource MutedBrush}" />
+                        <TextBlock Text="{Binding TotaleStraordinarie}" FontWeight="Bold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasStraordinari}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <Grid>
+                    <ProgressBar IsIndeterminate="True" Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                 Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding ErrorMessage, StringFormat=Errore: {0}}" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="Nessuna presenza registrata per questo mese." HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+
+                    <DataGrid ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                              CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
+                              SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
+                              Background="Transparent" RowBackground="Transparent"
+                              HorizontalGridLinesBrush="{StaticResource DividerBrush}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="*" />
+                            <DataGridTextColumn Header="Ore ord." Binding="{Binding OreOrdinarie}" Width="100"
+                                                HeaderStyle="{StaticResource RightHeader}"
+                                                ElementStyle="{StaticResource RightCell}" />
+                            <DataGridTemplateColumn Header="Ore straord." Width="110"
+                                                    HeaderStyle="{StaticResource RightHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding OreStraordinarie}" Style="{StaticResource RightCell}">
+                                            <TextBlock.Resources>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource RightCell}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasStraordinari}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Resources>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Cantiere" Binding="{Binding Cantiere}" Width="*" />
+                            <DataGridTemplateColumn Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Modifica"
+                                                    Width="32" Height="32"
+                                                    Command="{Binding DataContext.EditPresenzaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" />
+                                            </Button>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Elimina"
+                                                    Width="32" Height="32" Foreground="{StaticResource DangerBrush}"
+                                                    Command="{Binding DataContext.DeletePresenzaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="DeleteOutline" Width="18" Height="18" />
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>
