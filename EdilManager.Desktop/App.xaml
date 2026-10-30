@@ -102,6 +102,9 @@
             <DataTemplate DataType="{x:Type vm:PresenzeViewModel}">
                 <views:PresenzeView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AziendaFormViewModel}">
+                <views:AziendaFormView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:EsportaViewModel}">
                 <views:EsportaView />
             </DataTemplate>

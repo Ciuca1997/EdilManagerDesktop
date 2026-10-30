@@ -45,7 +45,7 @@ public static class PresenzaExportService
 
     // sottotitolo: riga sotto il titolo (es. il cantiere a cui si limitano le ore).
     public static byte[] ExportMatricePdf(IEnumerable<Dipendente> dipendenti, IEnumerable<Presenza> presenze, int anno, int mese,
-        string? sottotitolo = null)
+        string? sottotitolo = null, string? azienda = null)
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
@@ -63,6 +63,8 @@ public static class PresenzaExportService
 
                 page.Header().Column(col =>
                 {
+                    if (!string.IsNullOrWhiteSpace(azienda))
+                        col.Item().Text(azienda).FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
                     col.Item().Text($"Foglio presenze — {NomeMese(mese)} {anno}").FontSize(13).Bold();
                     if (!string.IsNullOrWhiteSpace(sottotitolo))
                         col.Item().Text(sottotitolo).FontSize(9).FontColor(Colors.Grey.Darken2);
@@ -178,7 +180,8 @@ public static class PresenzaExportService
         return ConBom(string.Join("\r\n", righe) + "\r\n");
     }
 
-    public static byte[] ExportDipendentePdf(Dipendente dipendente, IEnumerable<Presenza> presenze, DateOnly da, DateOnly a)
+    public static byte[] ExportDipendentePdf(Dipendente dipendente, IEnumerable<Presenza> presenze, DateOnly da, DateOnly a,
+        string? azienda = null)
     {
         QuestPDF.Settings.License = LicenseType.Community;
         var elenco = Ordina(presenze);
@@ -193,6 +196,8 @@ public static class PresenzaExportService
 
                 page.Header().Column(col =>
                 {
+                    if (!string.IsNullOrWhiteSpace(azienda))
+                        col.Item().Text(azienda).FontSize(10).SemiBold().FontColor(Colors.Grey.Darken2);
                     col.Item().Text($"Foglio presenze — {dipendente.Cognome} {dipendente.Nome}").FontSize(15).Bold();
                     col.Item().Text($"Periodo: {da.ToString("dd/MM/yyyy", It)} – {a.ToString("dd/MM/yyyy", It)}")
                         .FontColor(Colors.Grey.Darken2);

@@ -9,7 +9,20 @@ public class DialogService
 {
     public const string Identifier = "RootDialog";
 
-    public Task<object?> ShowAsync(object viewModel) => DialogHost.Show(viewModel, Identifier);
+    // Se c'è già un dialogo aperto (es. doppio clic ripetuto) DialogHost rifiuta il secondo: lo si ignora e si restituisce null,
+    // che per chi chiama equivale a "annullato", invece di far comparire un errore imprevisto.
+    public async Task<object?> ShowAsync(object viewModel)
+    {
+        try
+        {
+            return await DialogHost.Show(viewModel, Identifier);
+        }
+        catch (InvalidOperationException ex)
+        {
+            AppLog.Trace($"DIALOGO ignorato perché ce n'è già uno aperto: {viewModel.GetType().Name} ({ex.Message})");
+            return null;
+        }
+    }
 
     public void Close(object? result = null) => DialogHost.Close(Identifier, result);
 

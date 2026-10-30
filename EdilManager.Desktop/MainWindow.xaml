@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        Title="EdilManager" Icon="Assets/icona.ico" Height="780" Width="1240" MinHeight="620" MinWidth="980"
+        Title="{Binding TitoloFinestra}" Icon="Assets/icona.ico" Height="780" Width="1240" MinHeight="620" MinWidth="980"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource MaterialDesign.Brush.Background}"
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
@@ -20,8 +20,11 @@
                 <Border DockPanel.Dock="Top" Background="{DynamicResource MaterialDesign.Brush.Primary}" Padding="16,20">
                     <StackPanel>
                         <materialDesign:PackIcon Kind="Domain" Width="32" Height="32" Foreground="White" />
-                        <TextBlock Text="EdilManager" Margin="0,8,0,0" FontSize="18" FontWeight="Bold" Foreground="White" />
-                        <TextBlock Text="Edilizia Matenana" FontSize="12" Foreground="White" Opacity="0.8" />
+                        <!-- Il nome dell'azienda (o "EdilManager" finché i dati non sono stati inseriti); su più righe se lungo. -->
+                        <TextBlock Text="{Binding NomeAzienda}" ToolTip="{Binding NomeAzienda}" Margin="0,8,0,0" FontSize="17"
+                                   FontWeight="Bold" Foreground="White" TextWrapping="Wrap" MaxHeight="48" />
+                        <TextBlock Text="{Binding PartitaIvaTesto}" Margin="0,2,0,0" FontSize="12" Foreground="White" Opacity="0.8"
+                                   Visibility="{Binding HasPartitaIva, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
                 </Border>
 

@@ -112,10 +112,12 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
     private async Task<ImportCartellaResult> ImportaElencoAsync(IEnumerable<string> elenco, string? radice,
         bool pdfRigoroso, IProgress<ImportCartellaProgress>? progress, CancellationToken ct)
     {
-        var file = elenco
+        // L'elenco dei file è "pigro": la scansione delle cartelle (anche di rete) parte qui, quindi va fuori dal thread
+        // dell'interfaccia, altrimenti la finestra di avanzamento e il suo pulsante «Annulla» resterebbero bloccati.
+        var file = await Task.Run(() => elenco
             .OrderBy(f => Path.GetExtension(f).Equals(".xml", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(f => f, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .ToList(), CancellationToken.None);
 
         var risultato = new ImportCartellaResult { Totale = file.Count };
         progress?.Report(new ImportCartellaProgress(0, file.Count, string.Empty));

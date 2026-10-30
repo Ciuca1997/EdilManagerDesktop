@@ -36,7 +36,7 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
     public async Task CreateAsync(PresenzaUpsertDto dto, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        await ValidaAsync(db, dto.DipendenteId, dto.Data, dto.CantiereId, dto.OreOrdinarie, dto.OreStatordinarie, null, ct);
+        await ValidaAsync(db, dto.DipendenteId, dto.Data, dto.CantiereId, dto.OreOrdinarie, dto.OreStatordinarie, null, controllaAssunzione: true, ct);
 
         var p = new Presenza { DipendenteId = dto.DipendenteId };
         Apply(dto, p);
@@ -49,7 +49,7 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         var p = await db.Presenze.FindAsync([id], ct)
                 ?? throw new InvalidOperationException("Presenza non trovata.");
-        await ValidaAsync(db, p.DipendenteId, dto.Data, dto.CantiereId, dto.OreOrdinarie, dto.OreStatordinarie, id, ct);
+        await ValidaAsync(db, p.DipendenteId, dto.Data, dto.CantiereId, dto.OreOrdinarie, dto.OreStatordinarie, id, controllaAssunzione: dto.Data != p.Data, ct);
 
         Apply(dto, p);
         await db.SaveChangesAsync(ct);
@@ -78,9 +78,9 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
             throw new InvalidOperationException($"Le ore di un giorno non possono superare {OreMassimeGiorno:0}.");
 
         await using var db = await factory.CreateDbContextAsync(ct);
-        // Azzerare un giorno è sempre consentito (anche per presenze preesistenti all'assunzione); inserire ore no.
-        if (attive.Count > 0) await EnsureAssuntoAsync(db, dipendenteId, data, ct);
         var esistenti = await db.Presenze.Where(p => p.DipendenteId == dipendenteId && p.Data == data).ToListAsync(ct);
+        // Non si creano presenze prima dell'assunzione; quelle già esistenti (dati vecchi) si possono correggere o cancellare.
+        if (attive.Any(r => esistenti.All(e => e.CantiereId != r.CantiereId))) await EnsureAssuntoAsync(db, dipendenteId, data, ct);
 
         foreach (var riga in attive)
         {
@@ -115,7 +115,7 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
         if (presenze.Count > 1)
             throw new InvalidOperationException("Questo giorno ha più presenze (cantieri diversi): modificalo dal dettaglio del giorno.");
 
-        if (ore > 0) await EnsureAssuntoAsync(db, dipendenteId, data, ct);
+        if (ore > 0 && presenze.Count == 0) await EnsureAssuntoAsync(db, dipendenteId, data, ct);
         var p = presenze.SingleOrDefault();
         if (p is null)
         {
@@ -173,6 +173,7 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
             : await db.Dipendenti.Where(d => db.Presenze.Any(p =>
                   p.DipendenteId == d.Id && p.CantiereId == cantiereId && p.Data >= primo && p.Data <= ultimo)).ToListAsync(ct);
 
+        var azienda = await db.Aziende.OrderBy(a => a.Id).Select(a => a.RagioneSociale).FirstOrDefaultAsync(ct);
         string? sottotitolo = null;
         if (cantiereId is not null)
         {
@@ -181,7 +182,7 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
         }
 
         return formato == FormatoExport.Pdf
-            ? PresenzaExportService.ExportMatricePdf(dipendenti, presenze, anno, mese, sottotitolo)
+            ? PresenzaExportService.ExportMatricePdf(dipendenti, presenze, anno, mese, sottotitolo, azienda)
             : PresenzaExportService.ExportMatriceCsv(dipendenti, presenze, anno, mese);
     }
 
@@ -194,20 +195,24 @@ public class PresenzaService(IDbContextFactory<ApplicationDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         var dipendente = await db.Dipendenti.FindAsync([dipendenteId], ct)
                          ?? throw new InvalidOperationException("Dipendente non trovato.");
+        var azienda = await db.Aziende.OrderBy(x => x.Id).Select(x => x.RagioneSociale).FirstOrDefaultAsync(ct);
         var presenze = await db.Presenze.Include(p => p.Cantiere)
             .Where(p => p.DipendenteId == dipendenteId && p.Data >= da && p.Data <= a)
             .ToListAsync(ct);
 
         return formato == FormatoExport.Pdf
-            ? PresenzaExportService.ExportDipendentePdf(dipendente, presenze, da, a)
+            ? PresenzaExportService.ExportDipendentePdf(dipendente, presenze, da, a, azienda)
             : PresenzaExportService.ExportDipendenteCsv(dipendente, presenze, da, a);
     }
 
     private static async Task ValidaAsync(ApplicationDbContext db, int dipendenteId, DateOnly data, int? cantiereId,
-        decimal ordinarie, decimal straordinarie, int? excludeId, CancellationToken ct)
+        decimal ordinarie, decimal straordinarie, int? excludeId, bool controllaAssunzione, CancellationToken ct)
     {
         ValidaOre(ordinarie, straordinarie);
-        await EnsureAssuntoAsync(db, dipendenteId, data, ct);
+        if (ordinarie == 0 && straordinarie == 0)
+            throw new InvalidOperationException("Inserisci almeno un'ora (ordinaria o straordinaria): per togliere una presenza, eliminala.");
+        // Modificare una presenza senza cambiarne la data non deve fallire se la data è anteriore all'assunzione (dati vecchi).
+        if (controllaAssunzione) await EnsureAssuntoAsync(db, dipendenteId, data, ct);
 
         var altre = await db.Presenze
             .Where(p => p.DipendenteId == dipendenteId && p.Data == data && p.Id != excludeId)

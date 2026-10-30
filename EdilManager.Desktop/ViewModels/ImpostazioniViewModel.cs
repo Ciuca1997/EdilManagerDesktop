@@ -11,16 +11,70 @@ public partial class ImpostazioniViewModel : ObservableObject
 {
     private readonly ImpostazioniService _impostazioni;
     private readonly DialogService _dialogs;
+    private readonly AziendaService _azienda;
 
-    public ImpostazioniViewModel(ImpostazioniService impostazioni, DialogService dialogs)
+    public ImpostazioniViewModel(ImpostazioniService impostazioni, DialogService dialogs, AziendaService azienda)
     {
         _impostazioni = impostazioni;
         _dialogs = dialogs;
+        _azienda = azienda;
+        _ = CaricaAziendaAsync();
         var corrente = impostazioni.Corrente;
         _archivioAttivo = corrente.ArchivioAttivo;
         _cartellaArchivio = corrente.CartellaArchivio ?? string.Empty;
         _cartellaImportazione = corrente.CartellaImportazione ?? string.Empty;
         _cartellaEsportazione = corrente.CartellaEsportazione ?? string.Empty;
+    }
+
+    // --- Dati dell'azienda
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAzienda), nameof(NoAzienda), nameof(TestoPulsanteAzienda))]
+    private string _aziendaNome = string.Empty;
+
+    [ObservableProperty]
+    private string _aziendaDettagli = string.Empty;
+
+    public bool HasAzienda => AziendaNome.Length > 0;
+    public bool NoAzienda => !HasAzienda;
+    public string TestoPulsanteAzienda => HasAzienda ? "Modifica dati" : "Inserisci i dati";
+
+    private async Task CaricaAziendaAsync()
+    {
+        try
+        {
+            var a = await _azienda.GetAsync();
+            AziendaNome = a?.RagioneSociale ?? string.Empty;
+            AziendaDettagli = a is null ? string.Empty : string.Join("\n", new[]
+            {
+                Unisci(" · ", a.PartitaIva is { Length: > 0 } ? $"P.IVA {a.PartitaIva}" : null,
+                    a.CodiceFiscale is { Length: > 0 } ? $"C.F. {a.CodiceFiscale}" : null),
+                Unisci(", ", a.Indirizzo, Unisci(" ", a.Cap, a.Comune, a.Provincia is { Length: > 0 } ? $"({a.Provincia})" : null)),
+                Unisci(" · ", a.Telefono, a.Email),
+            }.Where(r => r.Length > 0));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Caricamento dati azienda fallito", ex);
+        }
+    }
+
+    private static string Unisci(string separatore, params string?[] parti) =>
+        string.Join(separatore, parti.Where(p => !string.IsNullOrWhiteSpace(p)));
+
+    [RelayCommand]
+    private async Task ModificaAziendaAsync()
+    {
+        try
+        {
+            var form = new AziendaFormViewModel(_azienda, _dialogs, await _azienda.GetAsync(), primoAvvio: false);
+            if (await _dialogs.ShowAsync(form) is true) await CaricaAziendaAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Modifica dati azienda fallita", ex);
+            ErrorMessage = ex.Message;
+        }
     }
 
     // --- Archivio fatture

@@ -47,10 +47,10 @@ public class ArchivioFatture(ImpostazioniService impostazioni)
             {
                 try
                 {
-                    if (File.Exists(destinazione)) continue;
-                    Directory.CreateDirectory(Path.GetDirectoryName(destinazione)!);
-                    File.Copy(origine, destinazione);
-                    copiate.Add(destinazione);
+                    if (PercorsoLibero(origine, destinazione) is not { } percorso) continue; // già presente, identico
+                    Directory.CreateDirectory(Path.GetDirectoryName(percorso)!);
+                    File.Copy(origine, percorso);
+                    copiate.Add(percorso);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
                 {
@@ -106,6 +106,45 @@ public class ArchivioFatture(ImpostazioniService impostazioni)
         {
             return $"Cantiere rinominato, ma la cartella in archivio non si è potuta rinominare ({vecchia}): {ex.Message}";
         }
+    }
+
+    // Il nome dipende solo da data, fornitore e numero ripuliti: due fatture diverse possono dare lo stesso nome (es. numeri
+    // "12/A" e "12-A"). Se il file esiste ed è identico non si copia (restituisce null: reimportare non crea doppioni);
+    // se esiste ma è diverso si cerca un nome libero aggiungendo " (2)", " (3)", ... invece di scartare la copia in silenzio.
+    internal static string? PercorsoLibero(string origine, string destinazione)
+    {
+        var cartella = Path.GetDirectoryName(destinazione)!;
+        var nome = Path.GetFileNameWithoutExtension(destinazione);
+        var estensione = Path.GetExtension(destinazione);
+        for (var n = 1; n <= 50; n++)
+        {
+            var candidato = n == 1 ? destinazione : Path.Combine(cartella, $"{nome} ({n}){estensione}");
+            if (!File.Exists(candidato)) return candidato;
+            if (StessoContenuto(origine, candidato)) return null;
+        }
+        throw new IOException("Troppi file con lo stesso nome nella cartella dell'archivio.");
+    }
+
+    private static bool StessoContenuto(string a, string b)
+    {
+        if (new FileInfo(a).Length != new FileInfo(b).Length) return false;
+        using var fa = File.OpenRead(a);
+        using var fb = File.OpenRead(b);
+        var ba = new byte[81920];
+        var bb = new byte[81920];
+        int letti;
+        while ((letti = fa.Read(ba, 0, ba.Length)) > 0)
+        {
+            var pari = 0;
+            while (pari < letti)
+            {
+                var n = fb.Read(bb, pari, letti - pari);
+                if (n == 0) return false;
+                pari += n;
+            }
+            if (!ba.AsSpan(0, letti).SequenceEqual(bb.AsSpan(0, letti))) return false;
+        }
+        return true;
     }
 
     // "2024-08-09 Edilcentro Marziali S.r.l - 2089.pdf"

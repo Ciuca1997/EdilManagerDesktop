@@ -1,0 +1,74 @@
+<UserControl x:Class="EdilManager.Desktop.Views.AziendaFormView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Width="580">
+    <StackPanel Margin="24">
+        <TextBlock Text="{Binding Titolo}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Descrizione}" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" />
+
+        <TextBox Margin="0,20,0,0" Text="{Binding RagioneSociale, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 materialDesign:HintAssist.Hint="Ragione sociale *" />
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBox Text="{Binding PartitaIva, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="Partita IVA" />
+            <TextBox Grid.Column="2" Text="{Binding CodiceFiscale, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="Codice fiscale" />
+        </Grid>
+
+        <TextBox Margin="0,14,0,0" Text="{Binding Indirizzo, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 materialDesign:HintAssist.Hint="Indirizzo" />
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="110" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="110" />
+            </Grid.ColumnDefinitions>
+            <TextBox Text="{Binding Cap, UpdateSourceTrigger=PropertyChanged}" MaxLength="5"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="CAP" />
+            <TextBox Grid.Column="2" Text="{Binding Comune, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="Comune" />
+            <TextBox Grid.Column="4" Text="{Binding Provincia, UpdateSourceTrigger=PropertyChanged}" MaxLength="2"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="Prov." />
+        </Grid>
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBox Text="{Binding Telefono, UpdateSourceTrigger=PropertyChanged}" MaxLength="30"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="Telefono" />
+            <TextBox Grid.Column="2" Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     materialDesign:HintAssist.Hint="Email" />
+        </Grid>
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"
+                   Margin="0,16,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button Content="{Binding TestoSecondario}" Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Command="{Binding CancelCommand}" />
+            <Button Content="Salva" Margin="12,0,0,0" Command="{Binding SaveCommand}" IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

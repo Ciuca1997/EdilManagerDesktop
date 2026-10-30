@@ -89,6 +89,14 @@ public class CantiereService(IDbContextFactory<ApplicationDbContext> factory, Ar
         await using var db = await factory.CreateDbContextAsync(ct);
         var cantiere = await db.Cantieri.FindAsync([id], ct)
                        ?? throw new InvalidOperationException("Cantiere non trovato.");
+
+        // Due cantieri con lo stesso nome (o con nomi che diventano la stessa cartella) si confonderebbero nell'elenco
+        // e condividerebbero la cartella dell'archivio fatture, dove rinominarne uno sposterebbe anche i file dell'altro.
+        var cartella = ArchivioFatture.NomeCartella(nome);
+        var altriNomi = await db.Cantieri.Where(c => c.Id != id).Select(c => c.Nome).ToListAsync(ct);
+        if (altriNomi.Any(n => string.Equals(ArchivioFatture.NomeCartella(n), cartella, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Esiste già un altro cantiere con questo nome (o molto simile): scegline uno diverso.");
+
         var vecchioNome = cantiere.Nome;
         cantiere.Nome = nome;
         await db.SaveChangesAsync(ct);

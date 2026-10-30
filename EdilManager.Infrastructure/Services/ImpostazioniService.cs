@@ -13,6 +13,9 @@ public class Impostazioni
 
     // Cartella in cui si aprono i salvataggi dei fogli presenze.
     public string? CartellaEsportazione { get; set; }
+
+    // L'utente ha scelto "Più tardi" nel modulo dei dati azienda mostrato al primo avvio: non lo si ripropone a ogni avvio.
+    public bool AziendaSaltata { get; set; }
 }
 
 // Impostazioni dell'utente in un file JSON nella cartella dati: sopravvive agli aggiornamenti e si estende aggiungendo proprietà.
@@ -41,6 +44,7 @@ public class ImpostazioniService
                 CartellaArchivio = _corrente.CartellaArchivio,
                 CartellaImportazione = _corrente.CartellaImportazione,
                 CartellaEsportazione = _corrente.CartellaEsportazione,
+                AziendaSaltata = _corrente.AziendaSaltata,
             };
         }
     }
@@ -49,14 +53,20 @@ public class ImpostazioniService
     {
         lock (_gate)
         {
-            modifica(_corrente);
+            // Si lavora su una copia: se la scrittura del file fallisce (disco pieno, permessi) lo stato in memoria
+            // resta quello salvato, e non diverge dal file fino alla chiusura dell'app.
+            var copia = Duplica(_corrente);
+            modifica(copia);
             Directory.CreateDirectory(Path.GetDirectoryName(_file)!);
             // Scrittura atomica: un crollo a metà non lascia un file a metà.
             var temporaneo = _file + ".tmp";
-            File.WriteAllText(temporaneo, JsonSerializer.Serialize(_corrente, Json));
+            File.WriteAllText(temporaneo, JsonSerializer.Serialize(copia, Json));
             File.Move(temporaneo, _file, overwrite: true);
+            _corrente = copia;
         }
     }
+
+    private static Impostazioni Duplica(Impostazioni i) => JsonSerializer.Deserialize<Impostazioni>(JsonSerializer.Serialize(i))!;
 
     private static Impostazioni Carica(string file)
     {
@@ -66,7 +76,7 @@ public class ImpostazioniService
                 ? JsonSerializer.Deserialize<Impostazioni>(File.ReadAllText(file)) ?? new Impostazioni()
                 : new Impostazioni();
         }
-        catch (Exception ex) when (ex is JsonException or IOException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             // File illeggibile: si riparte dai valori predefiniti (il primo salvataggio lo sostituisce).
             return new Impostazioni();

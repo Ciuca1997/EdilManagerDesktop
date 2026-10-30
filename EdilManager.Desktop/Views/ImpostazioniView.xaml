@@ -14,6 +14,34 @@
                            Foreground="{StaticResource DangerBrush}"
                            Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
 
+                <Border CornerRadius="10" Padding="20" Margin="0,0,0,16" Background="{StaticResource SidebarBackground}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Azienda" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"
+                                           Text="Il nome compare in alto a sinistra e nell'intestazione dei fogli presenze in PDF." />
+                            </StackPanel>
+                            <Button Grid.Column="1" VerticalAlignment="Top" Margin="16,0,0,0"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Command="{Binding ModificaAziendaCommand}" Content="{Binding TestoPulsanteAzienda}" />
+                        </Grid>
+
+                        <TextBlock Margin="0,14,0,0" Foreground="{StaticResource MutedBrush}"
+                                   Text="Nessun dato inserito."
+                                   Visibility="{Binding NoAzienda, Converter={StaticResource BoolToVis}}" />
+                        <StackPanel Margin="0,14,0,0" Visibility="{Binding HasAzienda, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding AziendaNome}" FontSize="16" FontWeight="Bold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding AziendaDettagli}" Margin="0,4,0,0" TextWrapping="Wrap" LineHeight="22"
+                                       Foreground="{StaticResource MutedBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <Border CornerRadius="10" Padding="20" Background="{StaticResource SidebarBackground}">
                     <StackPanel>
                         <Grid>

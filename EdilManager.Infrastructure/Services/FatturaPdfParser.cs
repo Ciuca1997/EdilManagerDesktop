@@ -1,3 +1,4 @@
+using EdilManager.Core;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using EdilManager.Core.Entities;
@@ -40,13 +41,14 @@ public static class FatturaPdfParser
     // Si cerca nel testo appiattito perché la descrizione del tipo (es. TD24) può andare a capo.
     private static readonly Regex IntestazioneDocumento =
         new(@"\b(TD\d{2})\b.*?(\S+)\s+(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4})\s+\S+", Opt);
-    private static readonly Regex TokenImporto = new(@"^-?(?:\d{1,3}(?:\.\d{3})*|\d+),\d{2}$");
+    // Cifre limitate (fino a 15 intere e 5 gruppi di migliaia): importi più lunghi non sono reali e farebbero andare in overflow il decimal.
+    private static readonly Regex TokenImporto = new(@"^-?(?:\d{1,3}(?:\.\d{3}){0,5}|\d{1,15}),\d{2}$");
     // Il PDF a volte spezza un importo su due righe: "12.000,0" e "0".
     private static readonly Regex ImportoSpezzato = new(@"(\d,\d)\s+(\d)(?=\s|$)");
     private static readonly decimal[] AliquoteIva = [0m, 4m, 5m, 10m, 22m];
     private static readonly Regex AliquotaRiga = new(@"^(?:\d{1,2},\d{2}|N\d(?:\.\d)?)$", Opt);
     // Quantità e prezzo unitario possono avere più di due decimali.
-    private static readonly Regex NumeroRiga = new(@"^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$");
+    private static readonly Regex NumeroRiga = new(@"^-?(?:\d{1,3}(?:\.\d{3}){1,5}|\d{1,15}),\d{1,8}$");
     private static readonly Regex Sconto = new(@"^[+-]?\d+(?:[.,]\d+)?%$");
 
     private static readonly string[] EtichetteAnagrafica =
@@ -251,8 +253,14 @@ public static class FatturaPdfParser
         (decimal imponibile, decimal imposta)? migliore = null;
         var differenza = decimal.MaxValue;
 
+        // Tetto ai passi: su un blocco anomalo (per esempio pieno di zeri) la ricerca ricorsiva crescerebbe in modo esponenziale.
+        // Superato il tetto si usa la migliore soluzione trovata finora, che se non torna col totale fa rifiutare il file.
+        var passi = 0;
+        const int PassiMassimi = 200_000;
+
         void Cerca(int pos, decimal imponibile, decimal imposta, int righe)
         {
+            if (++passi > PassiMassimi) return;
             if (righe > 0)
             {
                 var d = Math.Abs(totale - imponibile - imposta);
@@ -418,18 +426,7 @@ public static class FatturaPdfParser
         return null;
     }
 
-    private static bool PartitaIvaValida(string piva)
-    {
-        if (piva.Length != 11 || !piva.All(char.IsDigit)) return false;
-        var somma = 0;
-        for (var i = 0; i < 10; i++)
-        {
-            var cifra = piva[i] - '0';
-            if (i % 2 == 1) { cifra *= 2; if (cifra > 9) cifra -= 9; }
-            somma += cifra;
-        }
-        return (10 - somma % 10) % 10 == piva[10] - '0';
-    }
+    private static bool PartitaIvaValida(string piva) => DatiFiscali.PartitaIvaValida(piva);
 
     private static (string? numero, DateOnly? data) TrovaNumero(string testo)
     {

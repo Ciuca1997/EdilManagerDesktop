@@ -13,9 +13,24 @@ public class ApplicationDbContext : DbContext
     public DbSet<RigaFattura> RigheFattura => Set<RigaFattura>();
     public DbSet<Dipendente> Dipendenti => Set<Dipendente>();
     public DbSet<Presenza> Presenze => Set<Presenza>();
+    public DbSet<Azienda> Aziende => Set<Azienda>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Azienda>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.RagioneSociale).IsRequired().HasMaxLength(200);
+            e.Property(a => a.PartitaIva).HasMaxLength(20);
+            e.Property(a => a.CodiceFiscale).HasMaxLength(20);
+            e.Property(a => a.Indirizzo).HasMaxLength(200);
+            e.Property(a => a.Cap).HasMaxLength(10);
+            e.Property(a => a.Comune).HasMaxLength(100);
+            e.Property(a => a.Provincia).HasMaxLength(10);
+            e.Property(a => a.Telefono).HasMaxLength(30);
+            e.Property(a => a.Email).HasMaxLength(200);
+        });
+
         modelBuilder.Entity<Fornitore>(e =>
         {
             e.HasKey(f => f.Id);

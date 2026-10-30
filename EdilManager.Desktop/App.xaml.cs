@@ -67,6 +67,7 @@ public partial class App : Application
         sc.AddSingleton<ArchivioFatture>();
         sc.AddSingleton<CantiereService>();
         sc.AddSingleton<FornitoreService>();
+        sc.AddSingleton<AziendaService>();
         sc.AddSingleton<FatturaService>();
         sc.AddSingleton<DashboardService>();
 

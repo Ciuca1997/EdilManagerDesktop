@@ -51,8 +51,10 @@ Come funziona l'interfaccia:
   cantiere, `SalvaGiornoAsync`), «Cancella ore» (anche tasto Canc). Una cella con più cantieri è gialla, mostra la somma e non si modifica
   al volo: si apre il dettaglio del giorno. Pulsante «Esporta»: foglio del mese in PDF/CSV, anche solo per un cantiere (`EsportaViewModel`,
   `PresenzaService.EsportaMeseAsync`/`EsportaDipendenteAsync`, `PresenzaExportService`); CSV con `;`, virgola decimale e BOM per Excel.
-  **Data di assunzione:** `PresenzaService` rifiuta ore prima dell'assunzione (inserimento, modifica, giorno intero, cella; azzerare una
-  presenza preesistente resta consentito) e `DipendenteService.UpdateAsync` rifiuta un'assunzione successiva a presenze già registrate.
+  **Data di assunzione:** `PresenzaService` rifiuta di *creare* presenze prima dell'assunzione (inserimento, spostamento di data, nuovo
+  cantiere in un giorno, cella vuota); una presenza già esistente (dati vecchi) si può invece correggere nella stessa data o eliminare.
+  `DipendenteService.UpdateAsync` rifiuta un'assunzione successiva a presenze già registrate. Una presenza deve avere almeno un'ora
+  (per toglierla si elimina).
   Le interfacce non offrono ciò che non è valido: nel dettaglio del dipendente «mese precedente» si ferma al mese di assunzione,
   nella maschera il calendario parte dall'assunzione, l'elenco dei mesi dell'esportazione parte da lì, e nella griglia i giorni prima
   dell'assunzione sono grigio scuro e non modificabili (l'avviso di «Aggiungi» resta solo per un'assunzione futura).
@@ -77,12 +79,19 @@ Come funziona l'interfaccia:
   Il CUP si accetta solo nel formato esatto (lettera, 2 cifre, lettera, 11 cifre): CUP con refusi del fornitore (14 o 16 caratteri) vengono ignorati.
   Se P.IVA, numero, data o totale non si trovano il file è rifiutato. Per i PDF l'anagrafica di un fornitore già presente non viene sovrascritta.
   Attenzione: la P.IVA dell'azienda stessa compare come cessionario in ogni fattura, per questo nel percorso standard si legge solo il blocco del cedente.
+- **Azienda** (`Azienda` nel database, una sola riga; `AziendaService`, `AziendaFormViewModel`): ragione sociale (obbligatoria), P.IVA con controllo
+  della cifra di controllo (`DatiFiscali` in Core, usata anche dal parser PDF), codice fiscale, indirizzo, CAP, comune, provincia, telefono, email.
+  Al primo avvio dopo l'aggiornamento (nessun dato) il modulo si propone da solo; «Più tardi» imposta `Impostazioni.AziendaSaltata` e non lo si
+  riconsidera più, ma resta il blocco «Azienda» in cima alle Impostazioni. Il nome sostituisce il titolo nell'intestazione blu della barra
+  laterale (con la P.IVA sotto; finché mancano i dati resta «EdilManager»), compare nel titolo della finestra e nell'intestazione dei PDF
+  delle presenze. È nel database (non in `settings.json`) perché è un dato di lavoro e viaggia con i backup.
 - **Impostazioni** (voce in fondo alla barra laterale, `ImpostazioniViewModel`; i valori stanno in `settings.json` nella cartella dati,
   gestito da `ImpostazioniService`: per aggiungere un'opzione basta una proprietà in `Impostazioni`).
   Per ora c'è l'**archivio fatture** (`ArchivioFatture`): se attivo, ogni file importato (XML o PDF, anche se la fattura è già presente
   ma il file manca) viene copiato in `<destinazione>\fornitori\<fornitore>\` e, se la fattura ha un cantiere, anche in
   `<destinazione>\cantieri\<cantiere>\`. Il file si chiama `<data> <fornitore> - <numero>.<ext>` (nome dipendente solo dalla fattura:
-  un reimport non crea doppioni e non sovrascrive mai). I nomi di fornitore/cantiere sono quelli del database. Rinominare un cantiere
+  un reimport non crea doppioni e non sovrascrive mai; due fatture diverse che danno lo stesso nome, es. numeri `12/A` e `12-A`, prendono il
+  suffisso ` (2)`, ` (3)`, e un file identico già presente si salta). I nomi di fornitore/cantiere sono quelli del database. Rinominare un cantiere
   rinomina anche la sua cartella (`CantiereService.RenameAsync` restituisce un avviso se non ci riesce). Una copia fallita non invalida
   l'import (avviso nel riepilogo e nel log); un file già dentro la cartella archivio non viene ricopiato. Nomi ripuliti per Windows
   (caratteri vietati, punto finale, nomi riservati, max 80 caratteri). Le cartelle dei fornitori non si rinominano se la denominazione
@@ -105,6 +114,7 @@ Come funziona l'interfaccia:
   viene mostrato nel riepilogo. Il dialogo si chiude solo dopo `Shown` (la View è caricata), altrimenti `DialogHost.Close` fallisce.
   Provato pilotando l'app vera con UI Automation (script usa e getta): avanzamento, annulla, riepilogo parziale.
 - **Cantieri:** elenco con CUP e numero di fatture, ricerca per CUP o nome, rinomina (matita). Si creano da soli importando fatture con un CUP.
+  Non si può dare a un cantiere un nome già usato da un altro (o che per Windows darebbe la stessa cartella dell'archivio).
   Doppio clic sulla riga apre il **dettaglio** (`CantiereDetailViewModel`, `CantiereService.GetByIdAsync`): CUP, totale fatturato,
   riepilogo per fornitore, elenco fatture e pulsante «Rinomina».
 - **Fornitori** (voce di menu tra Fatture e Cantieri): elenco con nome, P.IVA e numero di fatture, ricerca per nome o P.IVA.
@@ -168,6 +178,12 @@ Cose da ricordare:
 - SQLite non sa fare `Sum` né `OrderBy` su `decimal`: si leggono i valori e si sommano in memoria (vedi `DashboardService`).
 - Nei progetti WPF `System.IO` non è tra gli using impliciti.
 - `FatturaPaParser` tollera i campi mancanti: `FatturaService` controlla che P.IVA, numero e data ci siano.
+- `Directory.EnumerateFiles` è "pigro": la scansione parte quando si legge l'elenco, quindi va messa in `Task.Run` (come in
+  `FatturaService.ImportaElencoAsync`), altrimenti su cartelle grandi o di rete blocca la finestra e il pulsante «Annulla».
+- Il riepilogo IVA del parser (`FatturaPdfParser.Riepilogo`) è una ricerca ricorsiva con tetto di 200.000 passi: senza, un blocco anomalo
+  (per esempio pieno di zeri) crescerebbe in modo esponenziale. Gli importi accettati hanno al massimo 15 cifre intere (oltre andrebbe in overflow).
+- Se si modifica il codice dal terminale (Git Bash), `sed -i` toglie i backslash dalle espressioni regolari e `\x27` non è un apostrofo
+  dentro un file: per il codice con regex o apostrofi usare lo strumento di modifica dei file e ricontrollare il risultato.
 
 ## Come è stato verificato
 
@@ -182,6 +198,7 @@ un'app installata che si è aggiornata alla Release successiva (v1.1.0): il flus
 
 - Un progetto di test (xUnit) con i controlli fatti a mano sui servizi.
 - Schermata per l'import da PEC.
+- Controllo all'importazione delle fatture intestate a un'altra azienda, ora che la P.IVA dell'azienda è nota (come avviso, non come blocco, per non rifiutare tutto se la P.IVA è scritta male); aiuterebbe anche a distinguere fornitore e cliente nei PDF non standard.
 - Estrazione dei PDF con le coordinate (non solo l'ordine del testo) per recuperare il ~5% di fatture le cui righe oggi si scartano.
 - Firma del codice dell'installer, per togliere l'avviso di Windows.
 - Costo del lavoro per cantiere (serve la paga oraria del dipendente, oggi non c'è).

@@ -263,13 +263,17 @@ public partial class PresenzeViewModel : ObservableObject, IReloadable
     private async Task SalvaCellaAsync(CellaGiorno cella, string testo)
     {
         string? errore = null;
+        // Il tipo di ore e il cantiere valgono nel momento in cui l'utente ha confermato la cella, non quando il salvataggio
+        // arriva al suo turno (potrebbero nel frattempo essere cambiati).
+        var modalita = Modalita;
+        var cantiereNuove = CantiereNuove?.Id;
         await _salvataggio.WaitAsync();
         try
         {
             if (!TryOre(testo, out var ore))
                 errore = "Le ore devono essere un numero maggiore o uguale a zero (es. 8 oppure 7,5).";
             else
-                await _presenze.ImpostaOreGiornoAsync(cella.Riga.DipendenteId, cella.Data, Modalita, ore, CantiereNuove?.Id);
+                await _presenze.ImpostaOreGiornoAsync(cella.Riga.DipendenteId, cella.Data, modalita, ore, cantiereNuove);
         }
         catch (InvalidOperationException ex)
         {
@@ -322,10 +326,11 @@ public partial class PresenzeViewModel : ObservableObject, IReloadable
     // Azzera le ore (del tipo mostrato) nelle celle selezionate.
     public async Task CancellaOreAsync(IReadOnlyList<CellaGiorno> celle)
     {
+        var modalita = Modalita; // il tipo di ore mostrato quando si chiede di cancellare, anche se poi cambia
         var daCancellare = celle.Where(c => c.Testo.Length > 0).ToList();
         if (daCancellare.Count == 0) return;
         if (daCancellare.Count > 1 && !await _dialogs.ConfirmAsync("Cancella ore",
-                $"Cancellare le ore {(Modalita == TipoOre.Ordinarie ? "ordinarie" : "straordinarie")} di {daCancellare.Count} celle?",
+                $"Cancellare le ore {(modalita == TipoOre.Ordinarie ? "ordinarie" : "straordinarie")} di {daCancellare.Count} celle?",
                 "Cancella", destructive: true))
             return;
 
@@ -337,7 +342,7 @@ public partial class PresenzeViewModel : ObservableObject, IReloadable
             foreach (var c in daCancellare)
             {
                 if (c.Presenze.Count > 1) { saltate++; continue; }
-                await _presenze.ImpostaOreGiornoAsync(c.Riga.DipendenteId, c.Data, Modalita, 0, null);
+                await _presenze.ImpostaOreGiornoAsync(c.Riga.DipendenteId, c.Data, modalita, 0, null);
             }
         }
         catch (Exception ex)
