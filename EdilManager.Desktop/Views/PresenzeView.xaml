@@ -1,0 +1,88 @@
+<UserControl x:Class="EdilManager.Desktop.Views.PresenzeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="24,16,24,12" BorderThickness="0,0,0,1"
+                BorderBrush="{StaticResource DividerBrush}">
+            <StackPanel>
+                <WrapPanel>
+                    <TextBlock Text="Presenze" Style="{StaticResource PageTitle}" Margin="0,0,24,0" />
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
+                        <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Mese precedente"
+                                Command="{Binding PreviousMonthCommand}">
+                            <materialDesign:PackIcon Kind="ChevronLeft" />
+                        </Button>
+                        <TextBlock Text="{Binding PeriodoText}" FontSize="16" FontWeight="SemiBold"
+                                   Width="150" TextAlignment="Center" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Mese successivo"
+                                Command="{Binding NextMonthCommand}">
+                            <materialDesign:PackIcon Kind="ChevronRight" />
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
+                        <RadioButton Content="Ore ordinarie" IsChecked="{Binding IsOrdinarie}" GroupName="ModalitaOre"
+                                     Style="{StaticResource MaterialDesignChoiceChipPrimaryOutlineRadioButton}" />
+                        <RadioButton Content="Ore straordinarie" IsChecked="{Binding IsStraordinarie}" GroupName="ModalitaOre"
+                                     Style="{StaticResource MaterialDesignChoiceChipPrimaryOutlineRadioButton}" Margin="8,0,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
+                        <TextBlock Text="Nuove ore su:" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" />
+                        <ComboBox Margin="8,0,0,0" Width="230" ItemsSource="{Binding Cantieri}"
+                                  SelectedItem="{Binding CantiereNuove}" DisplayMemberPath="Nome"
+                                  ToolTip="Cantiere assegnato alle ore che scrivi in una cella vuota" />
+                    </StackPanel>
+
+                    <Button VerticalAlignment="Center" Style="{StaticResource MaterialDesignOutlinedButton}"
+                            ToolTip="Esporta il foglio presenze del mese in PDF o CSV" Command="{Binding EsportaCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileExportOutline" VerticalAlignment="Center" />
+                            <TextBlock Text="Esporta" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"
+                           Text="Scrivi le ore in una cella e premi Invio. Clic destro per assegnare il cantiere alle celle selezionate o dividere un giorno tra più cantieri. Celle gialle = più cantieri nello stesso giorno." />
+            </StackPanel>
+        </Border>
+
+        <Grid>
+            <ProgressBar IsIndeterminate="True" Style="{StaticResource MaterialDesignCircularProgressBar}"
+                         Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+
+            <TextBlock Text="{Binding ErrorMessage, StringFormat=Errore: {0}}" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" TextWrapping="Wrap"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+            <TextBlock Text="Nessun dipendente in forza in questo mese." HorizontalAlignment="Center"
+                       VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"
+                       Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+
+            <DataGrid x:Name="Griglia" ItemsSource="{Binding Righe}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                      CanUserReorderColumns="False" CanUserSortColumns="False" HeadersVisibility="Column"
+                      SelectionMode="Extended" SelectionUnit="Cell" FrozenColumnCount="3"
+                      GridLinesVisibility="All" BorderThickness="0" RowHeight="34"
+                      Background="Transparent" RowBackground="Transparent"
+                      HorizontalGridLinesBrush="{StaticResource DividerBrush}"
+                      VerticalGridLinesBrush="{StaticResource DividerBrush}"
+                      Margin="12,8,12,12"
+                      BeginningEdit="OnBeginningEdit" PreviewKeyDown="OnPreviewKeyDown"
+                      PreviewMouseRightButtonDown="OnPreviewRightButtonDown">
+                <DataGrid.ContextMenu>
+                    <ContextMenu Opened="OnMenuOpened">
+                        <MenuItem x:Name="MenuCantiere" Header="Assegna al cantiere" />
+                        <MenuItem Header="Dettaglio giorno…" Click="OnDettaglioGiorno" />
+                        <Separator />
+                        <MenuItem Header="Cancella ore" Click="OnCancellaOre" />
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+            </DataGrid>
+        </Grid>
+    </DockPanel>
+</UserControl>

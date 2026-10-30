@@ -10,6 +10,9 @@
                     DisplayDateEnd="{Binding DisplayEnd, Mode=OneWay}" DisplayDate="{Binding DisplayStart, Mode=OneWay}"
                     Style="{StaticResource MaterialDesignOutlinedDatePicker}"
                     materialDesign:HintAssist.Hint="Data" />
+        <ComboBox Margin="0,16,0,0" ItemsSource="{Binding Cantieri}" SelectedItem="{Binding Cantiere}"
+                  DisplayMemberPath="Nome" Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                  materialDesign:HintAssist.Hint="Cantiere" />
         <TextBox Margin="0,16,0,0" Text="{Binding OreOrdinarie, UpdateSourceTrigger=PropertyChanged}"
                  PreviewTextInput="OnOrePreviewTextInput"
                  Style="{StaticResource MaterialDesignOutlinedTextBox}"

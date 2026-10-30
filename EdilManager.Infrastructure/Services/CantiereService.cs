@@ -51,6 +51,29 @@ public class CantiereService(IDbContextFactory<ApplicationDbContext> factory, Ar
             })
             .OrderByDescending(r => r.Totale)
             .ToList();
+
+        // Manodopera: si sommano in memoria (SQLite non sa fare Sum su decimal).
+        var presenze = await db.Presenze
+            .Where(p => p.CantiereId == id)
+            .Select(p => new
+            {
+                p.DipendenteId, p.Data, p.OreOrdinarie, p.OreStatordinarie,
+                Nome = p.Dipendente.Cognome + " " + p.Dipendente.Nome,
+            })
+            .ToListAsync(ct);
+        cantiere.Manodopera = presenze
+            .GroupBy(p => p.DipendenteId)
+            .Select(g => new ManodoperaDto
+            {
+                DipendenteId = g.Key,
+                Dipendente = g.First().Nome,
+                Giorni = g.Select(p => p.Data).Distinct().Count(),
+                OreOrdinarie = g.Sum(p => p.OreOrdinarie),
+                OreStraordinarie = g.Sum(p => p.OreStatordinarie),
+            })
+            .OrderByDescending(m => m.OreOrdinarie + m.OreStraordinarie)
+            .ThenBy(m => m.Dipendente)
+            .ToList();
         return cantiere;
     }
 

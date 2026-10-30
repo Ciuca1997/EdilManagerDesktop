@@ -27,6 +27,27 @@ public class DialogService
         return dialog.ShowDialog() == true ? dialog.FileNames : [];
     }
 
+    // Dopo un'esportazione: dice dove è stato salvato il file e propone di aprirlo.
+    public async Task MostraEsportazioneAsync(string percorso)
+    {
+        if (!await ConfirmAsync("Esportazione completata", $"File salvato in:\n{percorso}", "Apri file")) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(percorso) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error($"Apertura del file esportato fallita: {percorso}", ex);
+            await MessageAsync("Errore", $"Non riesco ad aprire il file: {ex.Message}");
+        }
+    }
+
+    public string? PickSaveFile(string filter, string title, string fileName)
+    {
+        var dialog = new SaveFileDialog { Filter = filter, Title = title, FileName = fileName, OverwritePrompt = true };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
     public string? PickFolder(string title)
     {
         var dialog = new OpenFolderDialog { Title = title };

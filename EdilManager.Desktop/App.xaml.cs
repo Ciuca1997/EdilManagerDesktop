@@ -78,6 +78,7 @@ public partial class App : Application
         sc.AddTransient<DashboardViewModel>();
         sc.AddTransient<DipendentiViewModel>();
         sc.AddTransient<FattureViewModel>();
+        sc.AddTransient<PresenzeViewModel>();
         sc.AddTransient<FornitoriViewModel>();
         sc.AddTransient<ImpostazioniViewModel>();
         sc.AddTransient<CantieriViewModel>();

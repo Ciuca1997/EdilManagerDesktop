@@ -16,6 +16,8 @@ public class CantiereDetailDto
     // Somma dei totali delle fatture, con le note di credito sottratte.
     public decimal TotaleFatture { get; set; }
     public IEnumerable<FornitoreRiepilogoDto> Fornitori { get; set; } = [];
+    // Ore registrate sul cantiere, per dipendente (dalle presenze).
+    public IEnumerable<ManodoperaDto> Manodopera { get; set; } = [];
     public IEnumerable<FatturaListDto> Fatture { get; set; } = [];
 }
 
@@ -26,4 +28,14 @@ public class FornitoreRiepilogoDto
     public string Denominazione { get; set; } = string.Empty;
     public int FattureCount { get; set; }
     public decimal Totale { get; set; }
+}
+
+// Ore lavorate da un dipendente su un cantiere.
+public class ManodoperaDto
+{
+    public int DipendenteId { get; set; }
+    public string Dipendente { get; set; } = string.Empty;
+    public int Giorni { get; set; }
+    public decimal OreOrdinarie { get; set; }
+    public decimal OreStraordinarie { get; set; }
 }

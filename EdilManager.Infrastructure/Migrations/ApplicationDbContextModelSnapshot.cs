@@ -218,8 +218,11 @@ namespace EdilManager.Infrastructure.Migrations
 
                     b.HasIndex("CantiereId");
 
-                    b.HasIndex("DipendenteId", "Data")
-                        .IsUnique();
+                    b.HasIndex("DipendenteId", "Data");
+
+                    b.HasIndex("DipendenteId", "Data", "CantiereId")
+                        .IsUnique()
+                        .HasFilter("\"CantiereId\" IS NOT NULL");
 
                     b.ToTable("Presenze");
                 });

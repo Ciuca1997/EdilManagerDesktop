@@ -1,0 +1,48 @@
+<UserControl x:Class="EdilManager.Desktop.Views.EsportaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Width="440">
+    <StackPanel Margin="24">
+        <TextBlock Text="{Binding Titolo}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Descrizione}" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" />
+
+        <TextBlock Text="FORMATO" Style="{StaticResource SectionTitle}" Margin="0,20,0,6" />
+        <StackPanel Orientation="Horizontal">
+            <RadioButton Content="PDF (da stampare)" GroupName="Formato" IsChecked="{Binding IsPdf}" />
+            <RadioButton Content="CSV (per Excel)" GroupName="Formato" IsChecked="{Binding IsCsv}" Margin="24,0,0,0" />
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding MostraCantiere, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="CANTIERE" Style="{StaticResource SectionTitle}" Margin="0,20,0,6" />
+            <ComboBox ItemsSource="{Binding Cantieri}" SelectedItem="{Binding Cantiere}" DisplayMemberPath="Nome"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}" materialDesign:HintAssist.Hint="Cantiere" />
+            <TextBlock Margin="0,6,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"
+                       Text="Con un cantiere scelto il foglio contiene solo le ore lavorate su quel cantiere." />
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding MostraPeriodo, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="PERIODO" Style="{StaticResource SectionTitle}" Margin="0,20,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ComboBox ItemsSource="{Binding Mesi}" SelectedItem="{Binding Da}" DisplayMemberPath="Testo"
+                          Style="{StaticResource MaterialDesignOutlinedComboBox}" materialDesign:HintAssist.Hint="Dal mese" />
+                <ComboBox Grid.Column="2" ItemsSource="{Binding Mesi}" SelectedItem="{Binding A}" DisplayMemberPath="Testo"
+                          Style="{StaticResource MaterialDesignOutlinedComboBox}" materialDesign:HintAssist.Hint="Al mese" />
+            </Grid>
+        </StackPanel>
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap"
+                   Margin="0,16,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button Content="Annulla" Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Command="{Binding CancelCommand}" />
+            <Button Content="Esporta…" Margin="12,0,0,0" Command="{Binding EsportaCommand}" IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

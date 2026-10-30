@@ -31,9 +31,13 @@
                     <TextBlock Text="Fatture" Style="{StaticResource FieldLabel}" />
                     <TextBlock Text="{Binding FattureText}" Style="{StaticResource FieldValue}" />
                 </StackPanel>
-                <StackPanel>
+                <StackPanel Margin="0,0,48,0">
                     <TextBlock Text="Totale fatturato (note di credito sottratte)" Style="{StaticResource FieldLabel}" />
                     <TextBlock Text="{Binding Totale}" FontSize="16" FontWeight="Bold" />
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Ore lavorate" Style="{StaticResource FieldLabel}" />
+                    <TextBlock Text="{Binding OreText}" FontSize="16" FontWeight="Bold" />
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -45,34 +49,75 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <StackPanel Visibility="{Binding HasFatture, Converter={StaticResource BoolToVis}}" Margin="0,0,0,16">
-                <TextBlock Text="Fornitori" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <DataGrid ItemsSource="{Binding Fornitori}" AutoGenerateColumns="False" IsReadOnly="True"
-                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
-                          CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
-                          SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
-                          Background="Transparent" RowBackground="Transparent" MaxHeight="216"
-                          HorizontalGridLinesBrush="{StaticResource DividerBrush}">
-                    <DataGrid.RowStyle>
-                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                            <EventSetter Event="MouseDoubleClick" Handler="OnFornitoreDoubleClick" />
-                            <Setter Property="Cursor" Value="Hand" />
-                            <Setter Property="ToolTip" Value="Doppio clic per aprire il fornitore" />
-                        </Style>
-                    </DataGrid.RowStyle>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Fornitore" Binding="{Binding Denominazione}" Width="*" />
-                        <DataGridTextColumn Header="Fatture" Binding="{Binding Fatture}" Width="100"
-                                            HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}"
-                                            CellStyle="{StaticResource RightCellContainer}" />
-                        <DataGridTextColumn Header="Totale" Binding="{Binding Totale}" Width="150"
-                                            HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}"
-                                            CellStyle="{StaticResource RightCellContainer}" />
-                    </DataGrid.Columns>
-                </DataGrid>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Margin="0,0,12,16" Visibility="{Binding HasFatture, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Fornitori" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <DataGrid ItemsSource="{Binding Fornitori}" AutoGenerateColumns="False" IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                              CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
+                              SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
+                              Background="Transparent" RowBackground="Transparent" MaxHeight="216"
+                              HorizontalGridLinesBrush="{StaticResource DividerBrush}">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="OnFornitoreDoubleClick" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="ToolTip" Value="Doppio clic per aprire il fornitore" />
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Fornitore" Binding="{Binding Denominazione}" Width="*" />
+                            <DataGridTextColumn Header="Fatture" Binding="{Binding Fatture}" Width="80"
+                                                HeaderStyle="{StaticResource RightHeader}"
+                                                ElementStyle="{StaticResource RightCell}"
+                                                CellStyle="{StaticResource RightCellContainer}" />
+                            <DataGridTextColumn Header="Totale" Binding="{Binding Totale}" Width="130"
+                                                HeaderStyle="{StaticResource RightHeader}"
+                                                ElementStyle="{StaticResource RightCell}"
+                                                CellStyle="{StaticResource RightCellContainer}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="12,0,0,16"
+                            Visibility="{Binding HasManodopera, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Manodopera" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <DataGrid ItemsSource="{Binding Manodopera}" AutoGenerateColumns="False" IsReadOnly="True"
+                              CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
+                              CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
+                              SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
+                              Background="Transparent" RowBackground="Transparent" MaxHeight="216"
+                              HorizontalGridLinesBrush="{StaticResource DividerBrush}">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="OnDipendenteDoubleClick" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="ToolTip" Value="Doppio clic per aprire il dipendente" />
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Dipendente" Binding="{Binding Dipendente}" Width="*" />
+                            <DataGridTextColumn Header="Giorni" Binding="{Binding Giorni}" Width="70"
+                                                HeaderStyle="{StaticResource RightHeader}"
+                                                ElementStyle="{StaticResource RightCell}"
+                                                CellStyle="{StaticResource RightCellContainer}" />
+                            <DataGridTextColumn Header="Ore ord." Binding="{Binding OreOrdinarie}" Width="90"
+                                                HeaderStyle="{StaticResource RightHeader}"
+                                                ElementStyle="{StaticResource RightCell}"
+                                                CellStyle="{StaticResource RightCellContainer}" />
+                            <DataGridTextColumn Header="Straord." Binding="{Binding OreStraordinarie}" Width="90"
+                                                HeaderStyle="{StaticResource RightHeader}"
+                                                ElementStyle="{StaticResource RightCell}"
+                                                CellStyle="{StaticResource RightCellContainer}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Grid>
 
             <DockPanel Grid.Row="1">
                 <TextBlock DockPanel.Dock="Top" Text="Fatture" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />

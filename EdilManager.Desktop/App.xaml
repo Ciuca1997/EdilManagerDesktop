@@ -99,6 +99,15 @@
             <DataTemplate DataType="{x:Type vm:CantiereDetailViewModel}">
                 <views:CantiereDetailView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PresenzeViewModel}">
+                <views:PresenzeView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:EsportaViewModel}">
+                <views:EsportaView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PresenzaGiornoViewModel}">
+                <views:PresenzaGiornoView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:ImpostazioniViewModel}">
                 <views:ImpostazioniView />
             </DataTemplate>

@@ -39,7 +39,25 @@ Come funziona l'interfaccia:
 
 ## Funzioni presenti
 
-- **Dipendenti:** elenco, nuovo, modifica, elimina; dettaglio con anagrafica e presenze mensili (aggiungi, modifica, elimina, totali ore).
+- **Dipendenti:** elenco, nuovo, modifica, elimina; dettaglio con anagrafica e presenze mensili (aggiungi, modifica, elimina, totali ore)
+  e pulsante «Esporta presenze» (foglio del dipendente su un intervallo di mesi, PDF o CSV).
+- **Presenze** (voce di menu, `PresenzeViewModel`/`PresenzeView`): griglia mensile con tutti i dipendenti in forza (righe) e i giorni
+  (colonne, generate nel code-behind perché cambiano col mese); totali Ord./Straord. fissi accanto al nome.
+  Un **dipendente può avere più presenze nello stesso giorno, una per cantiere** (e al massimo una senza cantiere; max 24 ore al giorno;
+  indice unico filtrato su dipendente+data+cantiere, la regola «una senza cantiere» è nel servizio perché in SQLite i NULL sono distinti).
+  Si scrivono le ore nella cella e Invio (`PresenzaService.ImpostaOreGiornoAsync`): il selettore «Ore ordinarie/straordinarie» decide quale
+  tipo si vede e si modifica, «Nuove ore su» sceglie il cantiere delle ore inserite in celle vuote. Clic destro sulle celle selezionate:
+  assegna il cantiere (`ImpostaCantiereAsync`, solo giorni con una presenza), «Dettaglio giorno…» (`PresenzaGiornoViewModel`: una riga per
+  cantiere, `SalvaGiornoAsync`), «Cancella ore» (anche tasto Canc). Una cella con più cantieri è gialla, mostra la somma e non si modifica
+  al volo: si apre il dettaglio del giorno. Pulsante «Esporta»: foglio del mese in PDF/CSV, anche solo per un cantiere (`EsportaViewModel`,
+  `PresenzaService.EsportaMeseAsync`/`EsportaDipendenteAsync`, `PresenzaExportService`); CSV con `;`, virgola decimale e BOM per Excel.
+  **Data di assunzione:** `PresenzaService` rifiuta ore prima dell'assunzione (inserimento, modifica, giorno intero, cella; azzerare una
+  presenza preesistente resta consentito) e `DipendenteService.UpdateAsync` rifiuta un'assunzione successiva a presenze già registrate.
+  Le interfacce non offrono ciò che non è valido: nel dettaglio del dipendente «mese precedente» si ferma al mese di assunzione,
+  nella maschera il calendario parte dall'assunzione, l'elenco dei mesi dell'esportazione parte da lì, e nella griglia i giorni prima
+  dell'assunzione sono grigio scuro e non modificabili (l'avviso di «Aggiungi» resta solo per un'assunzione futura).
+  Il dettaglio cantiere mostra le ore per dipendente (manodopera) e le ore totali. Il campo `OreStatordinarie` dell'entità ha un refuso
+  storico (`Statordinarie`); i tipi nuovi usano `OreStraordinarie`.
 - **Fatture:** elenco; un unico pulsante «Importa fatture» per uno o più file `.xml` (FatturaPA) o `.pdf` con riepilogo;
   `FatturaService.ImportaAsync` sceglie il parser in base all'estensione; i file non validi vengono rifiutati.
   Il PDF (`FatturaPdfParser`, PdfPig + regole sul testo) ha due percorsi: il PDF di visualizzazione standard della fattura
@@ -98,7 +116,7 @@ Come funziona l'interfaccia:
   dati da `FatturaService.GetByIdAsync`): fornitore, documento, pagamento, righe e totali. I codici SDI (TDxx, MPxx) sono tradotti in testo.
   Le fatture importate da PDF hanno le righe solo se il parser le ha lette con la somma coerente; altrimenti la schermata lo dice.
 
-Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecImportService`), export presenze PDF/CSV (`PresenzaExportService`).
+Esiste nel codice ma **non ha ancora una schermata**: import da PEC (`PecImportService`).
 
 ## Dati e database
 
@@ -110,6 +128,7 @@ Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecIm
 - Le migrazioni si applicano all'avvio. Se ce ne sono di nuove, prima viene salvata una copia del database (si tengono le ultime 5).
 - Nuova migrazione:
   `dotnet ef migrations add NomeMigrazione --project EdilManager.Infrastructure --startup-project EdilManager.Desktop`
+  (`dotnet-ef` non è installato di default: `dotnet tool install dotnet-ef --version 9.0.* --tool-path <cartella>` e poi si lancia da lì).
 
 ## Rilascio e aggiornamento automatico
 
@@ -152,7 +171,8 @@ un'app installata che si è aggiornata alla Release successiva (v1.1.0): il flus
 ## Idee per i prossimi passi
 
 - Un progetto di test (xUnit) con i controlli fatti a mano sui servizi.
-- Schermate per import da PEC e export presenze PDF/CSV.
+- Schermata per l'import da PEC.
 - Estrazione dei PDF con le coordinate (non solo l'ordine del testo) per recuperare il ~5% di fatture le cui righe oggi si scartano.
 - Firma del codice dell'installer, per togliere l'avviso di Windows.
-- Associare una presenza a un cantiere (il dato esiste, la maschera non lo chiede ancora).
+- Costo del lavoro per cantiere (serve la paga oraria del dipendente, oggi non c'è).
+- Scadenze e documenti dei dipendenti (visita medica, formazione sicurezza, idoneità).

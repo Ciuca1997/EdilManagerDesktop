@@ -11,10 +11,20 @@
                 </Button>
                 <TextBlock Text="{Binding NomeCompleto}" Style="{StaticResource PageTitle}" Margin="8,0,0,0" />
             </StackPanel>
-            <Button HorizontalAlignment="Right" Style="{StaticResource MaterialDesignIconButton}" ToolTip="Modifica"
-                    Command="{Binding EditDipendenteCommand}">
-                <materialDesign:PackIcon Kind="PencilOutline" />
-            </Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,8,0"
+                        ToolTip="Esporta il foglio presenze di questo dipendente in PDF o CSV"
+                        Command="{Binding EsportaCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FileExportOutline" VerticalAlignment="Center" />
+                        <TextBlock Text="Esporta presenze" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Modifica"
+                        Command="{Binding EditDipendenteCommand}">
+                    <materialDesign:PackIcon Kind="PencilOutline" />
+                </Button>
+            </StackPanel>
         </Grid>
         <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
 

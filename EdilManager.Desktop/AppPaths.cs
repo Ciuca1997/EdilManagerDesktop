@@ -64,4 +64,11 @@ public static class AppLog
 public static class Formats
 {
     public static readonly CultureInfo Italian = CultureInfo.GetCultureInfo("it-IT");
+
+    // "Ottobre" (con la maiuscola iniziale).
+    public static string NomeMese(int mese)
+    {
+        var nome = Italian.DateTimeFormat.GetMonthName(mese);
+        return char.ToUpper(nome[0], Italian) + nome[1..];
+    }
 }

@@ -7,13 +7,16 @@ namespace EdilManager.Desktop.Services;
 // Apre le pagine di dettaglio (fattura, fornitore, cantiere) da qualsiasi schermata, con la navigazione "indietro".
 public class DetailOpener(
     INavigationService nav, IServiceProvider services, DialogService dialogs,
-    FatturaService fatture, FornitoreService fornitori, CantiereService cantieri)
+    FatturaService fatture, FornitoreService fornitori, CantiereService cantieri, DipendenteService dipendenti)
 {
     public Task OpenFatturaAsync(int id) => OpenAsync("Apertura fattura", async () =>
         await fatture.GetByIdAsync(id) is { } d ? ActivatorUtilities.CreateInstance<FatturaDetailViewModel>(services, d) : null);
 
     public Task OpenFornitoreAsync(int id) => OpenAsync("Apertura fornitore", async () =>
         await fornitori.GetByIdAsync(id) is { } d ? ActivatorUtilities.CreateInstance<FornitoreDetailViewModel>(services, d) : null);
+
+    public Task OpenDipendenteAsync(int id) => OpenAsync("Apertura dipendente", async () =>
+        await dipendenti.GetByIdAsync(id) is { } d ? ActivatorUtilities.CreateInstance<DipendenteDetailViewModel>(services, d) : null);
 
     public Task OpenCantiereAsync(int id) => OpenAsync("Apertura cantiere", async () =>
         await cantieri.GetByIdAsync(id) is { } d ? ActivatorUtilities.CreateInstance<CantiereDetailViewModel>(services, d) : null);

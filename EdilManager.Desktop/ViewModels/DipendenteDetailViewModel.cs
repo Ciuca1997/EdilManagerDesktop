@@ -27,17 +27,19 @@ public partial class DipendenteDetailViewModel : ObservableObject
 
     private readonly DipendenteService _dipendenti;
     private readonly PresenzaService _presenze;
+    private readonly CantiereService _cantieri;
     private readonly DialogService _dialogs;
     private readonly INavigationService _nav;
     private int _loadVersion;
 
     public DipendenteDetailViewModel(
         DipendenteDetailDto dipendente, DipendenteService dipendenti, PresenzaService presenze,
-        DialogService dialogs, INavigationService nav)
+        CantiereService cantieri, DialogService dialogs, INavigationService nav)
     {
         _dipendente = dipendente;
         _dipendenti = dipendenti;
         _presenze = presenze;
+        _cantieri = cantieri;
         _dialogs = dialogs;
         _nav = nav;
         _periodo = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -49,6 +51,7 @@ public partial class DipendenteDetailViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NomeCompleto))]
     [NotifyPropertyChangedFor(nameof(Iniziale))]
+    [NotifyCanExecuteChangedFor(nameof(PreviousMonthCommand))]
     private DipendenteDetailDto _dipendente;
 
     public string NomeCompleto => $"{Dipendente.Cognome} {Dipendente.Nome}";
@@ -56,7 +59,7 @@ public partial class DipendenteDetailViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PeriodoText))]
-    [NotifyCanExecuteChangedFor(nameof(NextMonthCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextMonthCommand), nameof(PreviousMonthCommand))]
     private DateTime _periodo;
 
     public string PeriodoText => $"{Mesi[Periodo.Month]} {Periodo.Year}";
@@ -122,8 +125,11 @@ public partial class DipendenteDetailViewModel : ObservableObject
     [RelayCommand]
     private void GoBack() => _nav.Pop();
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanGoPrevious))]
     private void PreviousMonth() => Periodo = Periodo.AddMonths(-1);
+
+    // Non si va indietro oltre il mese di assunzione: prima non ci sono presenze registrabili.
+    private bool CanGoPrevious() => Periodo > new DateTime(Dipendente.DataAssunzione.Year, Dipendente.DataAssunzione.Month, 1);
 
     [RelayCommand(CanExecute = nameof(CanGoNext))]
     private void NextMonth() => Periodo = Periodo.AddMonths(1);
@@ -139,7 +145,13 @@ public partial class DipendenteDetailViewModel : ObservableObject
         try
         {
             var updated = await _dipendenti.GetByIdAsync(Dipendente.Id);
-            if (updated is not null) Dipendente = updated;
+            if (updated is not null)
+            {
+                Dipendente = updated;
+                // Se la nuova assunzione cade dopo il mese che si sta guardando, si passa al mese di assunzione.
+                var inizio = new DateTime(updated.DataAssunzione.Year, updated.DataAssunzione.Month, 1);
+                if (Periodo < inizio && inizio <= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)) Periodo = inizio;
+            }
         }
         catch (Exception ex)
         {
@@ -148,16 +160,31 @@ public partial class DipendenteDetailViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task EsportaAsync()
+    {
+        var form = EsportaViewModel.PerDipendente(_dialogs, _presenze, Dipendente.Id, NomeCompleto, new MeseOption(Periodo.Year, Periodo.Month), Dipendente.DataAssunzione);
+        if (await _dialogs.ShowAsync(form) is string percorso) await _dialogs.MostraEsportazioneAsync(percorso);
+    }
+
+    [RelayCommand]
     private async Task AddPresenzaAsync()
     {
-        var form = new PresenzaFormViewModel(_presenze, _dialogs, Dipendente.Id, Periodo, null);
+        // Mese interamente precedente all'assunzione: non c'è nessun giorno in cui registrare una presenza.
+        if (DateOnly.FromDateTime(Periodo.AddMonths(1).AddDays(-1)) < Dipendente.DataAssunzione)
+        {
+            await _dialogs.MessageAsync("Presenza non registrabile",
+                $"Il dipendente è stato assunto il {Dipendente.DataAssunzione:dd/MM/yyyy}: in {PeriodoText} non ci sono giorni in cui registrare presenze.");
+            return;
+        }
+
+        var form = new PresenzaFormViewModel(_presenze, _dialogs, Dipendente.Id, Periodo, null, await CaricaCantieriAsync(), Dipendente.DataAssunzione);
         if (await _dialogs.ShowAsync(form) is true) await LoadPresenzeAsync();
     }
 
     [RelayCommand]
     private async Task EditPresenzaAsync(PresenzaRow row)
     {
-        var form = new PresenzaFormViewModel(_presenze, _dialogs, Dipendente.Id, Periodo, row.Dto);
+        var form = new PresenzaFormViewModel(_presenze, _dialogs, Dipendente.Id, Periodo, row.Dto, await CaricaCantieriAsync(), Dipendente.DataAssunzione);
         if (await _dialogs.ShowAsync(form) is true) await LoadPresenzeAsync();
     }
 
@@ -175,6 +202,20 @@ public partial class DipendenteDetailViewModel : ObservableObject
         catch (Exception ex)
         {
             await ShowErrorAsync(ex);
+        }
+    }
+
+    private async Task<IReadOnlyList<CantiereOption>> CaricaCantieriAsync()
+    {
+        try
+        {
+            return CantiereOption.Elenco(await _cantieri.GetAllAsync());
+        }
+        catch (Exception ex)
+        {
+            // Senza elenco si può comunque registrare la presenza (senza cantiere).
+            AppLog.Error("Caricamento cantieri per la presenza fallito", ex);
+            return [CantiereOption.Nessuno];
         }
     }
 

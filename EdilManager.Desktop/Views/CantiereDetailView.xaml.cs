@@ -14,6 +14,12 @@ public partial class CantiereDetailView : UserControl
             vm.OpenFatturaCommand.Execute(row);
     }
 
+    private void OnDipendenteDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is DataGridRow { Item: ManodoperaRow row } && DataContext is CantiereDetailViewModel vm)
+            vm.OpenDipendenteCommand.Execute(row);
+    }
+
     private void OnFornitoreDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is DataGridRow { Item: FornitoreRiepilogoRow row } && DataContext is CantiereDetailViewModel vm)

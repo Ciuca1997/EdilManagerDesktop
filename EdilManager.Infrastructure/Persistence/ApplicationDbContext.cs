@@ -74,7 +74,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Presenza>(e =>
         {
             e.HasKey(p => p.Id);
-            e.HasIndex(p => new { p.DipendenteId, p.Data }).IsUnique();
+            // Più presenze nello stesso giorno sono ammesse se su cantieri diversi: un cantiere al massimo una volta al giorno.
+            // Quella senza cantiere (CantiereId nullo) la limita il servizio, perché in SQLite i NULL sono tutti distinti.
+            e.HasIndex(p => new { p.DipendenteId, p.Data });
+            e.HasIndex(p => new { p.DipendenteId, p.Data, p.CantiereId }).IsUnique().HasFilter("\"CantiereId\" IS NOT NULL");
             e.Property(p => p.OreOrdinarie).HasPrecision(5, 2);
             e.Property(p => p.OreStatordinarie).HasPrecision(5, 2);
             e.HasOne(p => p.Dipendente).WithMany(d => d.Presenze).HasForeignKey(p => p.DipendenteId);

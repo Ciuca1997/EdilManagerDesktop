@@ -14,6 +14,15 @@ public sealed class FornitoreRiepilogoRow(FornitoreRiepilogoDto dto)
     public string Totale { get; } = dto.Totale.ToString("N2", Formats.Italian) + " €";
 }
 
+public sealed class ManodoperaRow(ManodoperaDto dto)
+{
+    public int DipendenteId { get; } = dto.DipendenteId;
+    public string Dipendente { get; } = dto.Dipendente;
+    public string Giorni { get; } = dto.Giorni.ToString();
+    public string OreOrdinarie { get; } = dto.OreOrdinarie.ToString("0.0", Formats.Italian);
+    public string OreStraordinarie { get; } = dto.OreStraordinarie > 0 ? dto.OreStraordinarie.ToString("0.0", Formats.Italian) : "-";
+}
+
 public partial class CantiereDetailViewModel : ObservableObject
 {
     private readonly CantiereService _service;
@@ -36,6 +45,12 @@ public partial class CantiereDetailViewModel : ObservableObject
 
         Fatture = cantiere.Fatture.Select(f => new FatturaRow(f)).ToList();
         Fornitori = cantiere.Fornitori.Select(f => new FornitoreRiepilogoRow(f)).ToList();
+        Manodopera = cantiere.Manodopera.Select(m => new ManodoperaRow(m)).ToList();
+        var ordinarie = cantiere.Manodopera.Sum(m => m.OreOrdinarie);
+        var straordinarie = cantiere.Manodopera.Sum(m => m.OreStraordinarie);
+        OreText = ordinarie + straordinarie == 0
+            ? "Nessuna ora registrata"
+            : $"{ordinarie.ToString("N1", Formats.Italian)} ord." + (straordinarie > 0 ? $" + {straordinarie.ToString("N1", Formats.Italian)} straord." : string.Empty);
         FattureText = Fatture.Count switch { 0 => "Nessuna fattura", 1 => "1 fattura", var n => $"{n} fatture" };
         Totale = cantiere.TotaleFatture.ToString("N2", Formats.Italian) + " €";
     }
@@ -49,6 +64,9 @@ public partial class CantiereDetailViewModel : ObservableObject
     public string Totale { get; }
     public IReadOnlyList<FatturaRow> Fatture { get; }
     public IReadOnlyList<FornitoreRiepilogoRow> Fornitori { get; }
+    public IReadOnlyList<ManodoperaRow> Manodopera { get; }
+    public string OreText { get; }
+    public bool HasManodopera => Manodopera.Count > 0;
     public bool HasFatture => Fatture.Count > 0;
     public bool NoFatture => Fatture.Count == 0;
 
@@ -78,4 +96,7 @@ public partial class CantiereDetailViewModel : ObservableObject
 
     [RelayCommand]
     private Task OpenFornitoreAsync(FornitoreRiepilogoRow row) => _opener.OpenFornitoreAsync(row.FornitoreId);
+
+    [RelayCommand]
+    private Task OpenDipendenteAsync(ManodoperaRow row) => _opener.OpenDipendenteAsync(row.DipendenteId);
 }

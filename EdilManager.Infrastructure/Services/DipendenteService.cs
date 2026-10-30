@@ -51,6 +51,15 @@ public class DipendenteService(IDbContextFactory<ApplicationDbContext> factory)
                 ?? throw new InvalidOperationException("Dipendente non trovato.");
         await EnsureCodiceFiscaleLiberoAsync(db, dto.CodiceFiscale, id, ct);
 
+        // La data di assunzione non può scavalcare presenze già registrate.
+        var primaPresenza = await db.Presenze
+            .Where(p => p.DipendenteId == id && p.Data < dto.DataAssunzione)
+            .OrderBy(p => p.Data).Select(p => (DateOnly?)p.Data).FirstOrDefaultAsync(ct);
+        if (primaPresenza is { } prima)
+            throw new InvalidOperationException(
+                $"Il dipendente ha presenze registrate dal {prima.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)}: " +
+                "la data di assunzione non può essere successiva. Elimina prima quelle presenze.");
+
         Apply(dto, d);
         await db.SaveChangesAsync(ct);
         return ToDetail(d);
