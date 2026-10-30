@@ -26,4 +26,10 @@ public class DialogService
         var dialog = new OpenFileDialog { Filter = filter, Title = title, Multiselect = true, CheckFileExists = true };
         return dialog.ShowDialog() == true ? dialog.FileNames : [];
     }
+
+    public string? PickFolder(string title)
+    {
+        var dialog = new OpenFolderDialog { Title = title };
+        return dialog.ShowDialog() == true ? dialog.FolderName : null;
+    }
 }

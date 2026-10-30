@@ -42,3 +42,25 @@ public class RigaFatturaDto
     public decimal AliquotaIVA { get; set; }
     public decimal PrezzoTotale { get; set; }
 }
+
+public enum EsitoImport { Importata, Duplicata, Scartata, Errore }
+
+// Esito null = il file sta per essere elaborato; altrimenti è il risultato di quel file.
+public record ImportCartellaProgress(
+    int Elaborati, int Totale, string File, EsitoImport? Esito = null, string? Motivo = null, Exception? Eccezione = null);
+
+public record FileScartato(string File, string Motivo);
+
+public class ImportCartellaResult
+{
+    public int Totale { get; set; }
+    // File effettivamente elaborati: meno di Totale se l'operazione è stata annullata.
+    public int Elaborati { get; set; }
+    public bool Annullata { get; set; }
+    public int Importate { get; set; }
+    public int Duplicate { get; set; }
+    // File che non sono fatture valide (altri XML/PDF, importi incoerenti, scansioni...).
+    public List<FileScartato> Scartati { get; } = [];
+    // Problemi imprevisti (file illeggibile, errore del database).
+    public List<FileScartato> Errori { get; } = [];
+}

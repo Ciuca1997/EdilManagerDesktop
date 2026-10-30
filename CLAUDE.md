@@ -46,21 +46,46 @@ Come funziona l'interfaccia:
   elettronica (blocchi «Cedente/prestatore» e «RIEPILOGHI IVA E TOTALI», provato su 3 PDF reali di PA) è letto con regole
   precise e dà anche anagrafica fornitore, tipo documento (TD01, TD24...) e modalità di pagamento; qualsiasi altro PDF passa
   da regole generiche, meno affidabili. Non legge le righe di dettaglio né le scansioni (niente OCR).
+  Il percorso standard è stato tarato su 597 PDF reali di ~110 fornitori (tutti in formato standard): li legge tutti, 595 con
+  imponibile + imposta = totale esatto (gli altri 2 differiscono per bollo e per un arrotondamento di 0,01).
+  Il riepilogo IVA si ricostruisce cercando le righe `%IVA [spese accessorie] imponibile imposta` coerenti con il totale, perché
+  l'impaginazione cambia molto (85 forme diverse): numeri spezzati dal PDF (`12.000,0` + `0`), righe esenti senza aliquota
+  (`N1 25,01 0`, anche con imponibile negativo), colonna spese accessorie, intestazione TD su più righe, bollo `SI`, ritenuta dopo il totale.
+  Il fornitore è il blocco «Cedente/prestatore»; il «Terzo Intermediario» (es. Passepartout, TeamSystem) è un altro soggetto e va ignorato.
+  Le righe di dettaglio (`Righe` in `FatturaPdfParser`) si leggono dal testo e si tengono solo se la somma dei totali di riga
+  è uguale all'imponibile (altrimenti la fattura resta senza righe): 566 PDF su 597 passano. Gli scarti sono righe di sola
+  quantità senza prezzo (pizzeria), documenti incoerenti, e testo/importi intrecciati dal PDF al salto pagina (servirebbe
+  l'estrazione con coordinate). Il PDF a volte stampa il totale di una riga a fondo pagina *prima* della riga: è gestito.
+  Il CUP si accetta solo nel formato esatto (lettera, 2 cifre, lettera, 11 cifre): CUP con refusi del fornitore (14 o 16 caratteri) vengono ignorati.
   Se P.IVA, numero, data o totale non si trovano il file è rifiutato. Per i PDF l'anagrafica di un fornitore già presente non viene sovrascritta.
   Attenzione: la P.IVA dell'azienda stessa compare come cessionario in ogni fattura, per questo nel percorso standard si legge solo il blocco del cedente.
+- **Importa cartella** (pulsante nella schermata Fatture, `FatturaService.ImportaCartellaAsync`): cerca `.xml` e `.pdf` in una cartella
+  e in tutte le sottocartelle, importa quelli validi e scarta gli altri con il motivo (riepilogo finale con conteggi e i primi problemi).
+  Gli XML sono elaborati prima dei PDF, così se esistono entrambi per la stessa fattura vince l'XML (più completo) e il PDF risulta duplicato.
+  I PDF non nel formato standard sono accettati solo in modalità rigorosa (`FatturaPdfParser.Parse(..., rigoroso: true)`):
+  imponibile, imposta e totale devono essere tutti trovati e coerenti, per non importare contratti o preventivi come fatture.
+  Non legge `.xml.p7m` (fatture firmate) né scansioni. Provato su una cartella mista (XML non valido, PDF corrotto/vuoto, contratto,
+  preventivo) e sulle 597 fatture reali (7 secondi).
+  Sia «Importa cartella» sia «Importa fatture» passano da `EseguiImportAsync` (`FattureViewModel`): un dialogo di avanzamento
+  (`ImportProgressViewModel`) blocca l'app e ha il pulsante «Annulla». L'annullamento si controlla tra un file e l'altro
+  (ogni file è importato per intero o per niente) e il servizio restituisce il risultato parziale (`Annullata = true`), che
+  viene mostrato nel riepilogo. Il dialogo si chiude solo dopo `Shown` (la View è caricata), altrimenti `DialogHost.Close` fallisce.
+  Provato pilotando l'app vera con UI Automation (script usa e getta): avanzamento, annulla, riepilogo parziale.
 - **Cantieri:** elenco con CUP e numero di fatture; rinomina. Si creano da soli importando fatture con un CUP.
 - **Dashboard:** contatori e ore del mese.
 - **Aggiornamenti:** controllo all'avvio, pulsante "Controlla aggiornamenti" in basso a sinistra.
 
   Dall'elenco (doppio clic sulla riga o freccia a destra) si apre il **dettaglio fattura** (`FatturaDetailViewModel`/`FatturaDetailView`,
   dati da `FatturaService.GetByIdAsync`): fornitore, documento, pagamento, righe e totali. I codici SDI (TDxx, MPxx) sono tradotti in testo.
-  Le fatture importate da PDF non hanno righe e la schermata lo dice.
+  Le fatture importate da PDF hanno le righe solo se il parser le ha lette con la somma coerente; altrimenti la schermata lo dice.
 
 Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecImportService`), export presenze PDF/CSV (`PresenzaExportService`), elenco fornitori.
 
 ## Dati e database
 
-- Database e log: `%LocalAppData%\EdilManagerData` (`edilmanager.db`, `app.log`, `backups\`).
+- Database e log: `%LocalAppData%\EdilManagerData` (`edilmanager.db`, `backups\`, `logs\trace.log`, `logs\error.log`).
+  `AppLog.Trace` scrive la cronologia (avvio, import file per file con esito e motivo); `AppLog.Error` scrive il dettaglio
+  dell'eccezione in `error.log` e una riga di sintesi anche in `trace.log`. Oltre 5 MB il file diventa `.old`.
   Sono volutamente **fuori** da `%LocalAppData%\EdilManager`, la cartella di Velopack che viene sostituita a ogni aggiornamento.
 - La variabile d'ambiente `EDILMANAGER_DATA_DIR` cambia la cartella dati (utile per prove senza toccare i dati veri).
 - Le migrazioni si applicano all'avvio. Se ce ne sono di nuove, prima viene salvata una copia del database (si tengono le ultime 5).
@@ -97,6 +122,8 @@ Cose da ricordare:
 
 Non ci sono test automatici nel repo. Durante lo sviluppo sono stati usati strumenti usa e getta, non salvati:
 un piccolo programma di prova sui servizi (database temporaneo) e un test dell'interfaccia con screenshot.
+Per il parser PDF: un programma di prova che legge una cartella di PDF (`C:\Users\Ciuca\Desktop\Fornitori`, fuori dal repo perché
+contiene dati reali) e controlla che imponibile + imposta = totale. Senza i corrispondenti XML questo controllo è la "verità" disponibile.
 La pubblicazione delle Release da GitHub Actions funziona. L'aggiornamento automatico è stato provato dall'utente con
 un'app installata che si è aggiornata alla Release successiva (v1.1.0): il flusso completo funziona.
 
@@ -104,6 +131,6 @@ un'app installata che si è aggiornata alla Release successiva (v1.1.0): il flus
 
 - Un progetto di test (xUnit) con i controlli fatti a mano sui servizi.
 - Schermate per import da PEC, export presenze PDF/CSV e fornitori.
-- Lettura delle righe di dettaglio dai PDF di visualizzazione standard (oggi solo l'XML le ha).
+- Estrazione dei PDF con le coordinate (non solo l'ordine del testo) per recuperare il ~5% di fatture le cui righe oggi si scartano.
 - Firma del codice dell'installer, per togliere l'avviso di Windows.
 - Associare una presenza a un cantiere (il dato esiste, la maschera non lo chiede ancora).

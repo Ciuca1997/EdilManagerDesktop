@@ -5,12 +5,22 @@
     <DockPanel>
         <Grid DockPanel.Dock="Top" Margin="24,16">
             <TextBlock Text="Fatture" Style="{StaticResource PageTitle}" />
-            <Button HorizontalAlignment="Right" Command="{Binding ImportCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="FileUploadOutline" VerticalAlignment="Center" />
-                    <TextBlock Text="Importa fatture" Margin="8,0,0,0" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,8,0"
+                        Command="{Binding ImportFolderCommand}"
+                        ToolTip="Cerca fatture XML e PDF in una cartella e nelle sue sottocartelle">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FolderSearchOutline" VerticalAlignment="Center" />
+                        <TextBlock Text="Importa cartella" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding ImportCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FileUploadOutline" VerticalAlignment="Center" />
+                        <TextBlock Text="Importa fatture" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
         <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
 
@@ -27,7 +37,7 @@
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="Nessuna fattura." HorizontalAlignment="Center"
                            Foreground="{StaticResource MutedBrush}" />
-                <TextBlock Text="Usa «Importa fatture» per caricare uno o più file XML (FatturaPA) o PDF."
+                <TextBlock Text="Usa «Importa fatture» per caricare file XML (FatturaPA) o PDF, oppure «Importa cartella» per cercarli in una cartella e nelle sue sottocartelle."
                            Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource MutedBrush}" />
             </StackPanel>

@@ -29,19 +29,29 @@ public static class FatturaPdfParser
     private static readonly Regex QualsiasiData = new(Data, Opt);
     private static readonly Regex Scadenza =
         new(@"scadenza(?:\s+(?:pagamento|fattura))?\s*[:\-]?\s*" + Data, Opt);
-    private static readonly Regex Cup = new(@"\bCUP\b\s*[:\-]?\s*([A-Z0-9]{15})\b", Opt);
+    // 15 caratteri: lettera, 2 cifre, lettera, 11 cifre. Ammessi "CUP n.", "CUP cantiere Nr", "CUP=", ecc.
+    private static readonly Regex Cup =
+        new(@"\bCUP\b(?:\s+(?:cantiere|n\.?|nr\.?|n°))*\s*[:=\-]?\s*([A-Z]\d{2}[A-Z]\d{11})\b", Opt);
     private static readonly Regex ModalitaPagamento = new(@"\b(MP\d{2})\b");
     private static readonly Regex FormaGiuridica =
         new(@"\b(s\.?\s?r\.?\s?l\.?s?|s\.?\s?p\.?\s?a\.?|s\.?\s?n\.?\s?c\.?|s\.?\s?a\.?\s?s\.?|s\.?\s?c\.?\s?a?\s?r?\.?\s?l?\.?|ditta|impresa|di\s+[A-Z][a-z]+\s+[A-Z][a-z]+)\b", Opt);
 
-    // Riga "TD01 fattura 266 30-12-2023 SUBM70N": tipo, descrizione, numero, data, codice destinatario.
+    // "TD01 fattura 266 30-12-2023 SUBM70N": tipo, descrizione, numero, data, codice destinatario.
+    // Si cerca nel testo appiattito perché la descrizione del tipo (es. TD24) può andare a capo.
     private static readonly Regex IntestazioneDocumento =
-        new(@"^(TD\d{2})\b.*?(\S+)\s+(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4})(?:\s+\S+)?\s*$", Opt);
+        new(@"\b(TD\d{2})\b.*?(\S+)\s+(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4})\s+\S+", Opt);
     private static readonly Regex TokenImporto = new(@"^-?(?:\d{1,3}(?:\.\d{3})*|\d+),\d{2}$");
+    // Il PDF a volte spezza un importo su due righe: "12.000,0" e "0".
+    private static readonly Regex ImportoSpezzato = new(@"(\d,\d)\s+(\d)(?=\s|$)");
+    private static readonly decimal[] AliquoteIva = [0m, 4m, 5m, 10m, 22m];
+    private static readonly Regex AliquotaRiga = new(@"^(?:\d{1,2},\d{2}|N\d(?:\.\d)?)$", Opt);
+    // Quantità e prezzo unitario possono avere più di due decimali.
+    private static readonly Regex NumeroRiga = new(@"^-?(?:\d{1,3}(?:\.\d{3})+|\d+),\d+$");
+    private static readonly Regex Sconto = new(@"^[+-]?\d+(?:[.,]\d+)?%$");
 
     private static readonly string[] EtichetteAnagrafica =
     [
-        "Identificativo fiscale ai fini IVA", "Codice fiscale", "Denominazione", "Nome", "Cognome", "Titolo",
+        "Identificativo fiscale ai fini IVA", "Codice fiscale", "Denominazione", "Cognome nome", "Nome", "Cognome", "Titolo",
         "Regime fiscale", "Indirizzo", "Numero civico", "Comune", "Provincia", "Cap", "Nazione", "Telefono", "Fax",
         "Email", "Codice EORI",
     ];
@@ -55,7 +65,9 @@ public static class FatturaPdfParser
         [@"totale\s+imponibile", @"imponibile", @"totale\s+merce", @"totale\s+netto"];
     private static readonly string[] EtichetteImposta = [@"totale\s+iva", @"importo\s+iva", @"imposta", @"\biva\b"];
 
-    public static (Fornitore fornitore, Fattura fattura, string? cup) Parse(Stream pdf)
+    // rigoroso: un PDF non standard è accettato solo se imponibile, imposta e totale sono tutti trovati e la somma torna
+    // (serve quando si scansionano cartelle intere, dove ci sono anche contratti e preventivi).
+    public static (Fornitore fornitore, Fattura fattura, string? cup) Parse(Stream pdf, bool rigoroso = false)
     {
         var testo = EstraiTesto(pdf);
         if (string.IsNullOrWhiteSpace(testo))
@@ -64,7 +76,7 @@ public static class FatturaPdfParser
         var righe = testo.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var piatto = Regex.Replace(testo, @"\s+", " ");
 
-        return IsVisualizzazioneStandard(piatto) ? ParseVisualizzazione(righe, piatto) : ParseGenerico(righe, piatto);
+        return IsVisualizzazioneStandard(piatto) ? ParseVisualizzazione(righe, piatto) : ParseGenerico(righe, piatto, rigoroso);
     }
 
     private static bool IsVisualizzazioneStandard(string piatto) =>
@@ -78,13 +90,15 @@ public static class FatturaPdfParser
         var piva = Campo(cedente, "Identificativo fiscale ai fini IVA")?.Replace(" ", "");
         if (piva is not null && piva.StartsWith("IT", StringComparison.OrdinalIgnoreCase)) piva = piva[2..];
         var denominazione = Campo(cedente, "Denominazione")
+                            ?? Campo(cedente, "Cognome nome")
                             ?? $"{Campo(cedente, "Nome")} {Campo(cedente, "Cognome")}".Trim();
 
-        var intestazione = righe.Select(r => IntestazioneDocumento.Match(r)).FirstOrDefault(m => m.Success);
-        var numero = intestazione?.Groups[2].Value;
-        var data = intestazione is null ? null : ParseData(intestazione.Groups[3].Value);
-        var riepilogo = Riepilogo(righe);
-        var totale = TotaleDocumento(righe);
+        var intestazione = IntestazioneDocumento.Match(piatto);
+        var numero = intestazione.Success ? intestazione.Groups[2].Value : null;
+        var data = intestazione.Success ? ParseData(intestazione.Groups[3].Value) : null;
+        var documento = TotaleDocumento(piatto);
+        var totale = documento?.totale;
+        var riepilogo = documento is null ? null : Riepilogo(piatto, documento.Value.totale, documento.Value.altri);
 
         VerificaDatiMancanti(
             (piva, "partita IVA del fornitore"), (denominazione, "denominazione del fornitore"),
@@ -112,12 +126,13 @@ public static class FatturaPdfParser
             TotaleDocumento = totale!.Value,
             ModalitaPagamento = ModalitaPagamento.Match(piatto) is { Success: true } mp ? mp.Groups[1].Value : null,
             DataScadenzaPagamento = TrovaScadenza(piatto),
+            Righe = Righe(righe, riepilogo.Value.imponibile),
         };
 
         return (fornitore, fattura, TrovaCup(piatto));
     }
 
-    private static (Fornitore, Fattura, string?) ParseGenerico(string[] righe, string piatto)
+    private static (Fornitore, Fattura, string?) ParseGenerico(string[] righe, string piatto, bool rigoroso)
     {
         var piva = TrovaPartitaIva(piatto);
         var (numero, dataNumero) = TrovaNumero(piatto);
@@ -127,6 +142,8 @@ public static class FatturaPdfParser
         var imposta = TrovaImporto(piatto, EtichetteImposta);
 
         VerificaDatiMancanti((piva, "partita IVA"), (numero, "numero"), (data, "data"), (totale, "totale"));
+        if (rigoroso && (imponibile is null || imposta is null || Math.Abs(imponibile.Value + imposta.Value - totale!.Value) > 0.02m))
+            throw new InvalidOperationException("Non sembra una fattura: imponibile, imposta e totale non sono coerenti.");
 
         // Se manca uno dei due tra imponibile e imposta, si ricava per differenza dal totale.
         var totaleDoc = totale!.Value;
@@ -198,40 +215,192 @@ public static class FatturaPdfParser
         return m.Success && m.Groups[1].Value.Trim() is { Length: > 0 } v ? v : null;
     }
 
-    // Righe di riepilogo sotto l'intestazione "Totale imponibile / Totale imposta": %IVA ... imponibile imposta.
-    private static (decimal imponibile, decimal imposta)? Riepilogo(string[] righe)
+    // Dopo "Importo bollo / Sconto / Arr. / Totale documento" seguono i valori (bollo, sconto, arrotondamento, totale):
+    // il totale è l'ultimo della serie di importi consecutivi; dopo ci può essere altro (es. importo della ritenuta).
+    // "altri" sono gli importi che lo precedono, utili per spiegare uno scarto con il riepilogo IVA.
+    private static (decimal totale, decimal altri)? TotaleDocumento(string piatto)
     {
-        var inizio = Array.FindIndex(righe, r => r.Contains("Totale imposta", StringComparison.OrdinalIgnoreCase));
-        if (inizio < 0) return null;
+        var m = Regex.Match(piatto, @"Arr\.\s+Totale documento", Opt);
+        var i = m.Success ? m.Index + m.Length : piatto.LastIndexOf("Totale documento", StringComparison.OrdinalIgnoreCase);
+        if (i < 0) return null;
+        if (!m.Success) i += "Totale documento".Length;
 
-        decimal imponibile = 0, imposta = 0;
-        var trovato = false;
-        foreach (var riga in righe.Skip(inizio + 1))
+        var importi = new List<decimal>();
+        foreach (var token in piatto[i..].Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
-            if (riga.Contains("bollo", StringComparison.OrdinalIgnoreCase) ||
-                riga.Contains("Totale documento", StringComparison.OrdinalIgnoreCase)) break;
-
-            var numeri = NumeriFinali(riga);
-            if (numeri.Count < 3) continue;
-            imponibile += LeggiImporto(numeri[^2]);
-            imposta += LeggiImporto(numeri[^1]);
-            trovato = true;
+            if (token.Equals("SI", StringComparison.OrdinalIgnoreCase)) continue; // bollo virtuale
+            if (!TokenImporto.IsMatch(token)) break;
+            importi.Add(LeggiImporto(token));
         }
-        return trovato ? (imponibile, imposta) : null;
+        return importi.Count > 0 ? (importi[^1], importi[..^1].Sum(Math.Abs)) : null;
     }
 
-    // L'intestazione "... Totale documento" ha i valori nella riga sotto; il totale è l'ultimo numero.
-    private static decimal? TotaleDocumento(string[] righe)
+    // Righe del riepilogo IVA: %IVA, [spese accessorie], imponibile, imposta; le righe esenti possono non avere l'aliquota
+    // ("N1 25,01 0"). Gli importi del blocco si leggono in ordine e si cerca la sequenza di righe coerenti
+    // (imposta = imponibile × aliquota) la cui somma dà il totale del documento.
+    private static (decimal imponibile, decimal imposta)? Riepilogo(string piatto, decimal totale, decimal tolleranza)
     {
-        var i = Array.FindIndex(righe, r => r.EndsWith("Totale documento", StringComparison.OrdinalIgnoreCase));
-        if (i < 0 || i + 1 >= righe.Length) return null;
-        var numeri = NumeriFinali(righe[i + 1]);
-        return numeri.Count > 0 ? LeggiImporto(numeri[^1]) : null;
+        var inizio = piatto.IndexOf("RIEPILOGHI IVA", StringComparison.OrdinalIgnoreCase);
+        if (inizio < 0) return null;
+        var blocco = piatto[inizio..];
+        var fine = blocco.IndexOf("Importo bollo", StringComparison.OrdinalIgnoreCase);
+        if (fine < 0) fine = blocco.LastIndexOf("Totale documento", StringComparison.OrdinalIgnoreCase);
+        if (fine > 0) blocco = blocco[..fine];
+
+        var importi = Importi(blocco);
+        (decimal imponibile, decimal imposta)? migliore = null;
+        var differenza = decimal.MaxValue;
+
+        void Cerca(int pos, decimal imponibile, decimal imposta, int righe)
+        {
+            if (righe > 0)
+            {
+                var d = Math.Abs(totale - imponibile - imposta);
+                // A parità di scarto vince la soluzione con più righe (meno importi scartati).
+                if (d < differenza || (d == differenza && migliore is not null &&
+                                       imponibile + imposta > migliore.Value.imponibile + migliore.Value.imposta))
+                {
+                    differenza = d;
+                    migliore = (imponibile, imposta);
+                }
+                if (d == 0m) return;
+            }
+            for (var p = pos; p < importi.Count; p++)
+            {
+                // %IVA, imponibile, imposta
+                if (p + 2 < importi.Count && Coerente(importi[p], importi[p + 1], importi[p + 2]))
+                    Cerca(p + 3, imponibile + importi[p + 1], imposta + importi[p + 2], righe + 1);
+                if (differenza == 0m) return;
+                // %IVA, spese accessorie, imponibile, imposta
+                if (p + 3 < importi.Count && Coerente(importi[p], importi[p + 2], importi[p + 3]))
+                    Cerca(p + 4, imponibile + importi[p + 2], imposta + importi[p + 3], righe + 1);
+                if (differenza == 0m) return;
+                // imponibile, imposta nulla (operazione esente o fuori campo, senza aliquota)
+                if (p + 1 < importi.Count && importi[p] != 0m && importi[p + 1] == 0m)
+                    Cerca(p + 2, imponibile + importi[p], imposta, righe + 1);
+                if (differenza == 0m) return;
+            }
+        }
+        Cerca(0, 0m, 0m, 0);
+
+        // Il totale può includere bollo o arrotondamenti: si accetta solo lo scarto che essi spiegano.
+        return migliore is not null && differenza <= tolleranza + 0.02m ? migliore : null;
     }
 
-    private static List<string> NumeriFinali(string riga) =>
-        riga.Split(' ', StringSplitOptions.RemoveEmptyEntries).Reverse()
-            .TakeWhile(t => TokenImporto.IsMatch(t)).Reverse().ToList();
+    private static bool Coerente(decimal aliquota, decimal imponibile, decimal imposta) =>
+        AliquoteIva.Contains(aliquota) && Math.Abs(Math.Round(imponibile * aliquota / 100, 2) - imposta) <= 0.05m;
+
+    // Righe di dettaglio: testo descrittivo (anche su più righe) che si chiude con "[qtà] [prezzo] [UM] [sconto%] aliquota totale".
+    // L'unità di misura può andare a capo. Si tengono solo se la somma dei totali di riga torna con l'imponibile.
+    private static List<RigaFattura> Righe(string[] righe, decimal imponibile)
+    {
+        var inizio = Array.FindIndex(righe, r => r.StartsWith("Cod. articolo", StringComparison.OrdinalIgnoreCase));
+        var fine = Array.FindIndex(righe, r => r.StartsWith("RIEPILOGHI IVA", StringComparison.OrdinalIgnoreCase));
+        if (inizio < 0 || fine <= inizio) return [];
+
+        var blocco = ImportoSpezzato.Replace(string.Join('\n', righe[inizio..fine]), "$1$2");
+        var risultato = new List<RigaFattura>();
+        var accumulo = new List<string>();
+        var intestazione = false;
+        decimal? orfano = null;
+
+        foreach (var riga in blocco.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            // L'intestazione delle colonne si ripete a ogni pagina e si chiude con "Prezzo totale".
+            if (riga.StartsWith("Cod. articolo", StringComparison.OrdinalIgnoreCase)) intestazione = true;
+            if (intestazione)
+            {
+                if (riga.Contains("Prezzo totale", StringComparison.OrdinalIgnoreCase)) intestazione = false;
+                continue;
+            }
+
+            var token = riga.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string aliquota;
+            decimal totale;
+            string[] resto;
+            if (token.Length >= 2 && AliquotaRiga.IsMatch(token[^2]) && TokenImporto.IsMatch(token[^1]))
+                (aliquota, totale, resto) = (token[^2], LeggiImporto(token[^1]), token[..^2]);
+            else if (orfano is not null && token.Length >= 1 && AliquotaRiga.IsMatch(token[^1]))
+                (aliquota, totale, resto, orfano) = (token[^1], orfano.Value, token[..^1], null);
+            else if (token.Length == 1 && TokenImporto.IsMatch(token[0]))
+            {
+                // A fondo pagina il PDF può stampare il totale di una riga prima della riga stessa.
+                orfano = LeggiImporto(token[0]);
+                continue;
+            }
+            else
+            {
+                accumulo.Add(riga);
+                continue;
+            }
+
+            risultato.Add(CreaRiga(accumulo.SelectMany(a => a.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Concat(resto).ToList(),
+                aliquota, totale));
+            accumulo.Clear();
+        }
+
+        // Il testo rimasto dopo l'ultima riga con prezzo sono note (cantiere, informazioni documento), non righe.
+        return risultato.Count > 0 && Math.Abs(risultato.Sum(r => r.PrezzoTotale) - imponibile) <= 0.05m
+            ? risultato
+            : [];
+    }
+
+    // Da destra: sconto%, poi l'ultima coppia "quantità prezzo" seguita al massimo da qualche parola (unità di misura);
+    // se c'è un solo numero in fondo è il prezzo unitario. Tutto ciò che precede è descrizione.
+    private static RigaFattura CreaRiga(List<string> parole, string aliquota, decimal totale)
+    {
+        decimal? sconto = null;
+        if (parole.Count > 0 && Sconto.IsMatch(parole[^1]))
+        {
+            sconto = Math.Abs(decimal.Parse(parole[^1].TrimEnd('%').Replace(',', '.'), CultureInfo.InvariantCulture));
+            parole.RemoveAt(parole.Count - 1);
+        }
+
+        decimal? quantita = null, prezzo = null;
+        string? um = null;
+        var k = -1;
+        for (var i = parole.Count - 2; i >= 0 && i >= parole.Count - 5; i--)
+        {
+            if (!NumeroRiga.IsMatch(parole[i]) || !NumeroRiga.IsMatch(parole[i + 1])) continue;
+            if (parole.Skip(i + 2).Any(p => NumeroRiga.IsMatch(p))) continue;
+            k = i;
+            break;
+        }
+
+        if (k >= 0)
+        {
+            quantita = LeggiNumero(parole[k]);
+            prezzo = LeggiNumero(parole[k + 1]);
+            um = parole.Count > k + 2 ? string.Join(' ', parole.Skip(k + 2)) : null;
+            parole = parole[..k];
+        }
+        else if (parole.Count > 0 && NumeroRiga.IsMatch(parole[^1]))
+        {
+            prezzo = LeggiNumero(parole[^1]);
+            parole = parole[..^1];
+        }
+
+        return new RigaFattura
+        {
+            Descrizione = string.Join(' ', parole),
+            Quantita = quantita == 0 ? null : quantita,
+            PrezzoUnitario = prezzo == 0 ? null : prezzo,
+            UnitaMisura = um,
+            Sconto = sconto == 0 ? null : sconto,
+            AliquotaIVA = aliquota.StartsWith('N') ? 0m : LeggiImporto(aliquota),
+            PrezzoTotale = totale,
+        };
+    }
+
+    private static decimal LeggiNumero(string valore) =>
+        decimal.Parse(valore.Replace(".", "").Replace(',', '.'), NumberStyles.Number | NumberStyles.AllowLeadingSign,
+            CultureInfo.InvariantCulture);
+
+    private static List<decimal> Importi(string testo) =>
+        ImportoSpezzato.Replace(testo, "$1$2")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => TokenImporto.IsMatch(t) || t == "0")
+            .Select(t => t == "0" ? 0m : LeggiImporto(t)).ToList();
 
     private static decimal LeggiImporto(string valore) =>
         decimal.Parse(valore.Replace(".", "").Replace(',', '.'), NumberStyles.Number | NumberStyles.AllowLeadingSign,

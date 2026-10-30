@@ -91,7 +91,7 @@
                             Visibility="{Binding NoRighe, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="Nessuna riga di dettaglio disponibile." HorizontalAlignment="Center"
                                Foreground="{StaticResource MutedBrush}" />
-                    <TextBlock Text="Le righe si leggono solo dai file XML, non dai PDF."
+                    <TextBlock Text="Per le fatture importate da PDF le righe non sempre si riescono a leggere: importa il file XML per vederle."
                                Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
                                Foreground="{StaticResource MutedBrush}" />
                 </StackPanel>

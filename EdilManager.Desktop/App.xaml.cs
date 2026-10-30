@@ -38,12 +38,13 @@ public partial class App : Application
         catch (Exception ex)
         {
             AppLog.Error("Avvio fallito", ex);
-            MessageBox.Show($"Impossibile avviare EdilManager.\n\n{ex.Message}\n\nDettagli in: {AppPaths.LogFile}",
+            MessageBox.Show($"Impossibile avviare EdilManager.\n\n{ex.Message}\n\nDettagli in: {AppPaths.ErrorLogFile}",
                 "EdilManager", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
             return;
         }
 
+        AppLog.Trace($"Avvio EdilManager {AppInfo.Version}");
         var window = _services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.Show();
