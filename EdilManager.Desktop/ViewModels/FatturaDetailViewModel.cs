@@ -67,10 +67,16 @@ public partial class FatturaDetailViewModel : ObservableObject
     };
 
     private readonly INavigationService _nav;
+    private readonly DetailOpener _opener;
+    private readonly int _fornitoreId;
+    private readonly int? _cantiereId;
 
-    public FatturaDetailViewModel(FatturaDetailDto fattura, INavigationService nav)
+    public FatturaDetailViewModel(FatturaDetailDto fattura, INavigationService nav, DetailOpener opener)
     {
         _nav = nav;
+        _opener = opener;
+        _fornitoreId = fattura.Fornitore.Id;
+        _cantiereId = fattura.Cantiere?.Id;
 
         Titolo = $"Fattura {fattura.NumeroDocumento}";
         Data = fattura.DataDocumento.ToString("dd/MM/yyyy");
@@ -115,6 +121,13 @@ public partial class FatturaDetailViewModel : ObservableObject
     public IReadOnlyList<RigaFatturaRow> Righe { get; }
     public bool HasRighe => Righe.Count > 0;
     public bool NoRighe => Righe.Count == 0;
+    public bool HasCantiere => _cantiereId is not null;
+
+    [RelayCommand]
+    private Task OpenFornitoreAsync() => _opener.OpenFornitoreAsync(_fornitoreId);
+
+    [RelayCommand]
+    private Task OpenCantiereAsync() => _cantiereId is { } id ? _opener.OpenCantiereAsync(id) : Task.CompletedTask;
 
     [RelayCommand]
     private void GoBack() => _nav.Pop();
@@ -125,7 +138,7 @@ public partial class FatturaDetailViewModel : ObservableObject
         tabella.TryGetValue(codice, out var descrizione) ? $"{codice} · {descrizione}" : codice;
 
     // "Via Roma 1, 63900 Fermo (FM)": solo le parti presenti.
-    private static string FormattaIndirizzo(FornitoreDetailDto f)
+    internal static string FormattaIndirizzo(FornitoreDetailDto f)
     {
         var localita = string.Join(" ", new[] { f.Cap, f.Comune }.Where(s => !string.IsNullOrWhiteSpace(s)));
         if (!string.IsNullOrWhiteSpace(f.Provincia)) localita += $" ({f.Provincia})";

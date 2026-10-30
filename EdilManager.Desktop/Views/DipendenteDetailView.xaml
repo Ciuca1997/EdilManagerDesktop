@@ -133,9 +133,11 @@
                             <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="*" />
                             <DataGridTextColumn Header="Ore ord." Binding="{Binding OreOrdinarie}" Width="100"
                                                 HeaderStyle="{StaticResource RightHeader}"
-                                                ElementStyle="{StaticResource RightCell}" />
+                                                ElementStyle="{StaticResource RightCell}"
+                                                CellStyle="{StaticResource RightCellContainer}" />
                             <DataGridTemplateColumn Header="Ore straord." Width="110"
-                                                    HeaderStyle="{StaticResource RightHeader}">
+                                                    HeaderStyle="{StaticResource RightHeader}"
+                                                    CellStyle="{StaticResource RightCellContainer}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding OreStraordinarie}" Style="{StaticResource RightCell}">

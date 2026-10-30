@@ -1,0 +1,81 @@
+<UserControl x:Class="EdilManager.Desktop.Views.FornitoriView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="24,16" BorderThickness="0,0,0,1"
+                BorderBrush="{StaticResource DividerBrush}">
+            <Grid>
+                <TextBlock Text="Fornitori" Style="{StaticResource PageTitle}" />
+                <TextBox Width="300" HorizontalAlignment="Right" VerticalAlignment="Center"
+                         materialDesign:HintAssist.Hint="Cerca per nome o partita IVA"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+        </Border>
+
+        <Grid>
+            <ProgressBar IsIndeterminate="True" Style="{StaticResource MaterialDesignCircularProgressBar}"
+                         Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+
+            <TextBlock Text="{Binding ErrorMessage, StringFormat=Errore: {0}}" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" TextWrapping="Wrap"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Nessun fornitore." HorizontalAlignment="Center"
+                           Foreground="{StaticResource MutedBrush}" />
+                <TextBlock Text="I fornitori vengono creati automaticamente importando le fatture."
+                           Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
+                           Foreground="{StaticResource MutedBrush}" />
+            </StackPanel>
+
+            <TextBlock Text="Nessun fornitore corrisponde alla ricerca." HorizontalAlignment="Center"
+                       VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"
+                       Visibility="{Binding NoResults, Converter={StaticResource BoolToVis}}" />
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Items}" Margin="24,16">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="10" Margin="0,0,0,6" Padding="12,10" Cursor="Hand"
+                                    ToolTip="Doppio clic per aprire il dettaglio"
+                                    Background="{StaticResource SidebarBackground}">
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftDoubleClick"
+                                                  Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}" />
+                                </Border.InputBindings>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Width="40" Height="40" CornerRadius="20"
+                                            Background="{StaticResource AvatarBackground}">
+                                        <materialDesign:PackIcon Kind="StorefrontOutline" Width="22" Height="22"
+                                                                 Foreground="{StaticResource AvatarForeground}"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Denominazione}" FontWeight="SemiBold" />
+                                        <TextBlock FontSize="12" Foreground="{StaticResource MutedBrush}">
+                                            <Run Text="P.IVA" />
+                                            <Run Text="{Binding PartitaIva, Mode=OneWay}" />
+                                            <Run Text="·" />
+                                            <Run Text="{Binding FattureText, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>

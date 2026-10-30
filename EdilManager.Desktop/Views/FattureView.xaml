@@ -62,20 +62,9 @@
                     <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="70" />
                     <DataGridTextColumn Header="Totale" Binding="{Binding Totale}" Width="130"
                                         HeaderStyle="{StaticResource RightHeader}"
-                                        ElementStyle="{StaticResource RightCell}" />
+                                        ElementStyle="{StaticResource RightCell}"
+                                        CellStyle="{StaticResource RightCellContainer}" />
                     <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="110" />
-                    <DataGridTemplateColumn Width="48">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Dettaglio"
-                                        Width="32" Height="32" HorizontalAlignment="Right"
-                                        Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}">
-                                    <materialDesign:PackIcon Kind="ChevronRight" Width="20" Height="20" />
-                                </Button>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

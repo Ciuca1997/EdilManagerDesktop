@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EdilManager.Core;
 using EdilManager.Core.DTOs;
 using EdilManager.Desktop.Services;
 using EdilManager.Infrastructure.Services;
@@ -18,7 +19,8 @@ public sealed class FatturaRow(FatturaListDto dto)
     public string Fornitore { get; } = dto.Fornitore;
     public string Cantiere { get; } = dto.Cantiere ?? "-";
     public string Tipo { get; } = dto.TipoDocumento;
-    public string Totale { get; } = dto.TotaleDocumento.ToString("N2", Formats.Italian) + " €";
+    // Le note di credito si mostrano in negativo, coerente con i totali delle pagine di cantiere e fornitore.
+    public string Totale { get; } = Documenti.ConSegno(dto.TipoDocumento, dto.TotaleDocumento).ToString("N2", Formats.Italian) + " €";
     public string Scadenza { get; } = dto.DataScadenzaPagamento?.ToString("dd/MM/yyyy") ?? "-";
 }
 

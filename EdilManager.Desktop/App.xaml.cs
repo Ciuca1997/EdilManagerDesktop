@@ -64,16 +64,19 @@ public partial class App : Application
         sc.AddSingleton<DipendenteService>();
         sc.AddSingleton<PresenzaService>();
         sc.AddSingleton<CantiereService>();
+        sc.AddSingleton<FornitoreService>();
         sc.AddSingleton<FatturaService>();
         sc.AddSingleton<DashboardService>();
 
         sc.AddSingleton<DialogService>();
+        sc.AddSingleton<DetailOpener>();
         sc.AddSingleton<UpdateService>();
         sc.AddSingleton<MainViewModel>();
         sc.AddSingleton<INavigationService>(sp => sp.GetRequiredService<MainViewModel>());
         sc.AddTransient<DashboardViewModel>();
         sc.AddTransient<DipendentiViewModel>();
         sc.AddTransient<FattureViewModel>();
+        sc.AddTransient<FornitoriViewModel>();
         sc.AddTransient<CantieriViewModel>();
         sc.AddSingleton<MainWindow>();
 

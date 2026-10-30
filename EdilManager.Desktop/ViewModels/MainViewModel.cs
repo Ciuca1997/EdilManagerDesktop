@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject, INavigationService
             new NavItem("Dashboard", "ViewDashboardOutline", () => services.GetRequiredService<DashboardViewModel>()),
             new NavItem("Dipendenti", "AccountGroupOutline", () => services.GetRequiredService<DipendentiViewModel>()),
             new NavItem("Fatture", "ReceiptTextOutline", () => services.GetRequiredService<FattureViewModel>()),
+            new NavItem("Fornitori", "StorefrontOutline", () => services.GetRequiredService<FornitoriViewModel>()),
             new NavItem("Cantieri", "Crane", () => services.GetRequiredService<CantieriViewModel>()),
         ];
         SelectedNavItem = NavItems[0];

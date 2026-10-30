@@ -24,7 +24,11 @@
 
                 <StackPanel Margin="0,0,16,0">
                     <TextBlock Text="FORNITORE" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
-                    <TextBlock Text="{Binding Fornitore}" FontSize="16" FontWeight="Bold" TextWrapping="Wrap" />
+                    <TextBlock FontSize="16" FontWeight="Bold" TextWrapping="Wrap">
+                        <Hyperlink Command="{Binding OpenFornitoreCommand}" ToolTip="Apri il fornitore">
+                            <Run Text="{Binding Fornitore, Mode=OneWay}" />
+                        </Hyperlink>
+                    </TextBlock>
                     <TextBlock Text="{Binding PartitaIva, StringFormat=P.IVA {0}}" Margin="0,4,0,0" />
                     <TextBlock Text="{Binding CodiceFiscale, StringFormat=C.F. {0}}" Margin="0,2,0,0"
                                Visibility="{Binding CodiceFiscale, Converter={StaticResource HasText}}" />
@@ -48,7 +52,11 @@
                     </StackPanel>
                     <StackPanel Visibility="{Binding Cantiere, Converter={StaticResource HasText}}">
                         <TextBlock Text="Cantiere" Style="{StaticResource FieldLabel}" />
-                        <TextBlock Text="{Binding Cantiere}" Style="{StaticResource FieldValue}" />
+                        <TextBlock Style="{StaticResource FieldValue}">
+                            <Hyperlink Command="{Binding OpenCantiereCommand}" ToolTip="Apri il cantiere">
+                                <Run Text="{Binding Cantiere, Mode=OneWay}" />
+                            </Hyperlink>
+                        </TextBlock>
                     </StackPanel>
                 </StackPanel>
 
@@ -115,19 +123,24 @@
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="Quantità" Binding="{Binding Quantita}" Width="Auto"
                                             HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}" />
+                                            ElementStyle="{StaticResource RightCell}"
+                                            CellStyle="{StaticResource RightCellContainer}" />
                         <DataGridTextColumn Header="Prezzo unit." Binding="{Binding PrezzoUnitario}" Width="Auto"
                                             HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}" />
+                                            ElementStyle="{StaticResource RightCell}"
+                                            CellStyle="{StaticResource RightCellContainer}" />
                         <DataGridTextColumn Header="Sconto" Binding="{Binding Sconto}" Width="Auto"
                                             HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}" />
+                                            ElementStyle="{StaticResource RightCell}"
+                                            CellStyle="{StaticResource RightCellContainer}" />
                         <DataGridTextColumn Header="IVA" Binding="{Binding Iva}" Width="Auto"
                                             HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}" />
+                                            ElementStyle="{StaticResource RightCell}"
+                                            CellStyle="{StaticResource RightCellContainer}" />
                         <DataGridTextColumn Header="Totale (€)" Binding="{Binding Totale}" Width="Auto"
                                             HeaderStyle="{StaticResource RightHeader}"
-                                            ElementStyle="{StaticResource RightCell}" />
+                                            ElementStyle="{StaticResource RightCell}"
+                                            CellStyle="{StaticResource RightCellContainer}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

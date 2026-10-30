@@ -18,33 +18,45 @@ public sealed class CantiereRow(CantiereListDto dto)
         1 => "1 fattura",
         var n => $"{n} fatture",
     };
+
+    public bool Corrisponde(string testo) =>
+        Nome.Contains(testo, StringComparison.OrdinalIgnoreCase) ||
+        CUP.Contains(testo, StringComparison.OrdinalIgnoreCase);
 }
 
 public partial class CantieriViewModel : ObservableObject, IReloadable
 {
     private readonly CantiereService _service;
     private readonly DialogService _dialogs;
+    private readonly DetailOpener _opener;
+    private List<CantiereRow> _all = [];
 
-    public CantieriViewModel(CantiereService service, DialogService dialogs)
+    public CantieriViewModel(CantiereService service, DialogService dialogs, DetailOpener opener)
     {
         _service = service;
         _dialogs = dialogs;
+        _opener = opener;
         _ = ReloadAsync();
     }
 
     public ObservableCollection<CantiereRow> Items { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(NoResults))]
     private bool _isLoading;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
-    [NotifyPropertyChangedFor(nameof(HasError))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(NoResults), nameof(HasError))]
     private string? _errorMessage;
 
     public bool HasError => ErrorMessage is not null;
-    public bool IsEmpty => !IsLoading && !HasError && Items.Count == 0;
+    public bool IsEmpty => !IsLoading && !HasError && _all.Count == 0;
+    public bool NoResults => !IsLoading && !HasError && _all.Count > 0 && Items.Count == 0;
+
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
 
     public async Task ReloadAsync()
     {
@@ -52,9 +64,8 @@ public partial class CantieriViewModel : ObservableObject, IReloadable
         ErrorMessage = null;
         try
         {
-            var list = await _service.GetAllAsync();
-            Items.Clear();
-            foreach (var dto in list) Items.Add(new CantiereRow(dto));
+            _all = (await _service.GetAllAsync()).Select(d => new CantiereRow(d)).ToList();
+            ApplyFilter();
         }
         catch (Exception ex)
         {
@@ -65,8 +76,21 @@ public partial class CantieriViewModel : ObservableObject, IReloadable
         {
             IsLoading = false;
             OnPropertyChanged(nameof(IsEmpty));
+            OnPropertyChanged(nameof(NoResults));
         }
     }
+
+    private void ApplyFilter()
+    {
+        var testo = SearchText.Trim();
+        Items.Clear();
+        foreach (var row in testo.Length == 0 ? _all : _all.Where(r => r.Corrisponde(testo))) Items.Add(row);
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(NoResults));
+    }
+
+    [RelayCommand]
+    private Task OpenAsync(CantiereRow row) => _opener.OpenCantiereAsync(row.Id);
 
     [RelayCommand]
     private async Task EditAsync(CantiereRow row)

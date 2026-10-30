@@ -71,7 +71,16 @@ Come funziona l'interfaccia:
   (ogni file è importato per intero o per niente) e il servizio restituisce il risultato parziale (`Annullata = true`), che
   viene mostrato nel riepilogo. Il dialogo si chiude solo dopo `Shown` (la View è caricata), altrimenti `DialogHost.Close` fallisce.
   Provato pilotando l'app vera con UI Automation (script usa e getta): avanzamento, annulla, riepilogo parziale.
-- **Cantieri:** elenco con CUP e numero di fatture; rinomina. Si creano da soli importando fatture con un CUP.
+- **Cantieri:** elenco con CUP e numero di fatture, ricerca per CUP o nome, rinomina (matita). Si creano da soli importando fatture con un CUP.
+  Doppio clic sulla riga apre il **dettaglio** (`CantiereDetailViewModel`, `CantiereService.GetByIdAsync`): CUP, totale fatturato,
+  riepilogo per fornitore, elenco fatture e pulsante «Rinomina».
+- **Fornitori** (voce di menu tra Fatture e Cantieri): elenco con nome, P.IVA e numero di fatture, ricerca per nome o P.IVA.
+  Doppio clic apre il **dettaglio** in sola lettura (`FornitoreDetailViewModel`, `FornitoreService`): anagrafica, totale e fatture.
+  I fornitori non sono modificabili.
+- **Navigazione tra dettagli:** `DetailOpener` (servizio) apre fattura, fornitore o cantiere da qualsiasi schermata con «indietro».
+  Nel dettaglio fattura fornitore e cantiere sono collegamenti; nelle liste dei dettagli il doppio clic apre la fattura.
+  I totali di cantieri e fornitori sottraggono le note di credito (TD04, TD08: `Documenti.ConSegno`), che nelle liste si
+  mostrano in negativo; nel database gli importi restano positivi come nel file originale.
 - **Dashboard:** contatori e ore del mese.
 - **Aggiornamenti:** controllo all'avvio, pulsante "Controlla aggiornamenti" in basso a sinistra.
 
@@ -79,7 +88,7 @@ Come funziona l'interfaccia:
   dati da `FatturaService.GetByIdAsync`): fornitore, documento, pagamento, righe e totali. I codici SDI (TDxx, MPxx) sono tradotti in testo.
   Le fatture importate da PDF hanno le righe solo se il parser le ha lette con la somma coerente; altrimenti la schermata lo dice.
 
-Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecImportService`), export presenze PDF/CSV (`PresenzaExportService`), elenco fornitori.
+Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecImportService`), export presenze PDF/CSV (`PresenzaExportService`).
 
 ## Dati e database
 
@@ -113,6 +122,9 @@ Cose da ricordare:
 ## Trappole già incontrate
 
 - MaterialDesign 5: i colori si chiamano `MaterialDesign.Brush.*` (le vecchie chiavi come `PrimaryHueMidBrush` non esistono più).
+- `DataGrid`: per allineare a destra una colonna di importi non basta `HorizontalAlignment="Right"` sul `TextBlock` (il `ContentPresenter`
+  della cella si restringe al contenuto e il valore resta a sinistra). Servono `HeaderStyle="RightHeader"`, `ElementStyle="RightCell"`
+  **e** `CellStyle="RightCellContainer"` (tutti in `App.xaml`).
 - `DatePicker`: i binding di `DisplayDateStart/End/DisplayDate` a proprietà di sola lettura vanno scritti con `Mode=OneWay`.
 - SQLite non sa fare `Sum` né `OrderBy` su `decimal`: si leggono i valori e si sommano in memoria (vedi `DashboardService`).
 - Nei progetti WPF `System.IO` non è tra gli using impliciti.
@@ -130,7 +142,7 @@ un'app installata che si è aggiornata alla Release successiva (v1.1.0): il flus
 ## Idee per i prossimi passi
 
 - Un progetto di test (xUnit) con i controlli fatti a mano sui servizi.
-- Schermate per import da PEC, export presenze PDF/CSV e fornitori.
+- Schermate per import da PEC e export presenze PDF/CSV.
 - Estrazione dei PDF con le coordinate (non solo l'ordine del testo) per recuperare il ~5% di fatture le cui righe oggi si scartano.
 - Firma del codice dell'installer, per togliere l'avviso di Windows.
 - Associare una presenza a un cantiere (il dato esiste, la maschera non lo chiede ancora).

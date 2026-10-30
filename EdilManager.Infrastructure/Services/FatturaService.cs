@@ -14,18 +14,7 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.Fatture
             .OrderByDescending(f => f.DataDocumento).ThenByDescending(f => f.Id)
-            .Select(f => new FatturaListDto
-            {
-                Id = f.Id,
-                NumeroDocumento = f.NumeroDocumento,
-                DataDocumento = f.DataDocumento,
-                TipoDocumento = f.TipoDocumento,
-                TotaleDocumento = f.TotaleDocumento,
-                ModalitaPagamento = f.ModalitaPagamento,
-                DataScadenzaPagamento = f.DataScadenzaPagamento,
-                Fornitore = f.Fornitore.Denominazione,
-                Cantiere = f.Cantiere != null ? f.Cantiere.Nome : null,
-            })
+            .Select(FatturaProjections.ToListDto)
             .ToListAsync(ct);
     }
 

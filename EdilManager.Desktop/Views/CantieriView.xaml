@@ -5,7 +5,12 @@
     <DockPanel>
         <Border DockPanel.Dock="Top" Padding="24,16" BorderThickness="0,0,0,1"
                 BorderBrush="{StaticResource DividerBrush}">
-            <TextBlock Text="Cantieri" Style="{StaticResource PageTitle}" />
+            <Grid>
+                <TextBlock Text="Cantieri" Style="{StaticResource PageTitle}" />
+                <TextBox Width="300" HorizontalAlignment="Right" VerticalAlignment="Center"
+                         materialDesign:HintAssist.Hint="Cerca per CUP o nome"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
         </Border>
 
         <Grid>
@@ -26,12 +31,22 @@
                            Foreground="{StaticResource MutedBrush}" />
             </StackPanel>
 
+            <TextBlock Text="Nessun cantiere corrisponde alla ricerca." HorizontalAlignment="Center"
+                       VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"
+                       Visibility="{Binding NoResults, Converter={StaticResource BoolToVis}}" />
+
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Items}" Margin="24,16">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border CornerRadius="10" Margin="0,0,0,6" Padding="12,10"
+                            <Border CornerRadius="10" Margin="0,0,0,6" Padding="12,10" Cursor="Hand"
+                                    ToolTip="Doppio clic per aprire il dettaglio"
                                     Background="{StaticResource SidebarBackground}">
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftDoubleClick"
+                                                  Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}" />
+                                </Border.InputBindings>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />

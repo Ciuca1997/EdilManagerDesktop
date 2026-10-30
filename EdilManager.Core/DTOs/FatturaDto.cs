@@ -9,6 +9,7 @@ public class FatturaListDto
     public decimal TotaleDocumento { get; set; }
     public string? ModalitaPagamento { get; set; }
     public DateOnly? DataScadenzaPagamento { get; set; }
+    public int FornitoreId { get; set; }
     public string Fornitore { get; set; } = string.Empty;
     public string? Cantiere { get; set; }
 }
