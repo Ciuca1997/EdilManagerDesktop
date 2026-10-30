@@ -21,7 +21,7 @@ Questo file riassume lo stato del progetto ed è letto in automatico da Claude C
 - Interfaccia con MaterialDesignThemes 5.4.0
 - EF Core 9 + SQLite, un `IDbContextFactory` (contesti di vita breve, uno per operazione)
 - Aggiornamenti con Velopack 1.2.161 (il tool `vpk` nel workflow è fissato alla stessa versione)
-- Nel progetto Infrastructure ci sono anche MailKit (import PEC) e QuestPDF (export presenze)
+- Nel progetto Infrastructure ci sono anche MailKit (import PEC), QuestPDF (export presenze) e PdfPig (lettura fatture PDF)
 
 ## Struttura
 
@@ -40,12 +40,23 @@ Come funziona l'interfaccia:
 ## Funzioni presenti
 
 - **Dipendenti:** elenco, nuovo, modifica, elimina; dettaglio con anagrafica e presenze mensili (aggiungi, modifica, elimina, totali ore).
-- **Fatture:** elenco; import di uno o più file XML FatturaPA con riepilogo; i file non validi vengono rifiutati.
+- **Fatture:** elenco; un unico pulsante «Importa fatture» per uno o più file `.xml` (FatturaPA) o `.pdf` con riepilogo;
+  `FatturaService.ImportaAsync` sceglie il parser in base all'estensione; i file non validi vengono rifiutati.
+  Il PDF (`FatturaPdfParser`, PdfPig + regole sul testo) ha due percorsi: il PDF di visualizzazione standard della fattura
+  elettronica (blocchi «Cedente/prestatore» e «RIEPILOGHI IVA E TOTALI», provato su 3 PDF reali di PA) è letto con regole
+  precise e dà anche anagrafica fornitore, tipo documento (TD01, TD24...) e modalità di pagamento; qualsiasi altro PDF passa
+  da regole generiche, meno affidabili. Non legge le righe di dettaglio né le scansioni (niente OCR).
+  Se P.IVA, numero, data o totale non si trovano il file è rifiutato. Per i PDF l'anagrafica di un fornitore già presente non viene sovrascritta.
+  Attenzione: la P.IVA dell'azienda stessa compare come cessionario in ogni fattura, per questo nel percorso standard si legge solo il blocco del cedente.
 - **Cantieri:** elenco con CUP e numero di fatture; rinomina. Si creano da soli importando fatture con un CUP.
 - **Dashboard:** contatori e ore del mese.
 - **Aggiornamenti:** controllo all'avvio, pulsante "Controlla aggiornamenti" in basso a sinistra.
 
-Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecImportService`), export presenze PDF/CSV (`PresenzaExportService`), elenco fornitori, dettaglio fattura con righe.
+  Dall'elenco (doppio clic sulla riga o freccia a destra) si apre il **dettaglio fattura** (`FatturaDetailViewModel`/`FatturaDetailView`,
+  dati da `FatturaService.GetByIdAsync`): fornitore, documento, pagamento, righe e totali. I codici SDI (TDxx, MPxx) sono tradotti in testo.
+  Le fatture importate da PDF non hanno righe e la schermata lo dice.
+
+Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecImportService`), export presenze PDF/CSV (`PresenzaExportService`), elenco fornitori.
 
 ## Dati e database
 
@@ -92,6 +103,7 @@ un'app installata che si è aggiornata alla Release successiva (v1.1.0): il flus
 ## Idee per i prossimi passi
 
 - Un progetto di test (xUnit) con i controlli fatti a mano sui servizi.
-- Schermate per import da PEC, export presenze PDF/CSV, dettaglio fattura e fornitori.
+- Schermate per import da PEC, export presenze PDF/CSV e fornitori.
+- Lettura delle righe di dettaglio dai PDF di visualizzazione standard (oggi solo l'XML le ha).
 - Firma del codice dell'installer, per togliere l'avviso di Windows.
 - Associare una presenza a un cantiere (il dato esiste, la maschera non lo chiede ancora).

@@ -85,6 +85,9 @@
             <DataTemplate DataType="{x:Type vm:FattureViewModel}">
                 <views:FattureView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:FatturaDetailViewModel}">
+                <views:FatturaDetailView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:CantieriViewModel}">
                 <views:CantieriView />
             </DataTemplate>

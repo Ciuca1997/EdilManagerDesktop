@@ -5,11 +5,13 @@ using CommunityToolkit.Mvvm.Input;
 using EdilManager.Core.DTOs;
 using EdilManager.Desktop.Services;
 using EdilManager.Infrastructure.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EdilManager.Desktop.ViewModels;
 
 public sealed class FatturaRow(FatturaListDto dto)
 {
+    public int Id { get; } = dto.Id;
     public string Data { get; } = dto.DataDocumento.ToString("dd/MM/yyyy");
     public string Numero { get; } = dto.NumeroDocumento;
     public string Fornitore { get; } = dto.Fornitore;
@@ -23,11 +25,15 @@ public partial class FattureViewModel : ObservableObject, IReloadable
 {
     private readonly FatturaService _service;
     private readonly DialogService _dialogs;
+    private readonly INavigationService _nav;
+    private readonly IServiceProvider _services;
 
-    public FattureViewModel(FatturaService service, DialogService dialogs)
+    public FattureViewModel(FatturaService service, DialogService dialogs, INavigationService nav, IServiceProvider services)
     {
         _service = service;
         _dialogs = dialogs;
+        _nav = nav;
+        _services = services;
         _ = ReloadAsync();
     }
 
@@ -68,9 +74,31 @@ public partial class FattureViewModel : ObservableObject, IReloadable
     }
 
     [RelayCommand]
-    private async Task ImportXmlAsync()
+    private async Task OpenAsync(FatturaRow row)
     {
-        var files = _dialogs.PickFiles("Fatture elettroniche (*.xml)|*.xml", "Importa fatture XML");
+        try
+        {
+            var detail = await _service.GetByIdAsync(row.Id);
+            if (detail is null)
+            {
+                await ReloadAsync();
+                return;
+            }
+            _nav.Push(ActivatorUtilities.CreateInstance<FatturaDetailViewModel>(_services, detail));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Apertura fattura fallita", ex);
+            await _dialogs.MessageAsync("Errore", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        var files = _dialogs.PickFiles(
+            "Fatture (*.xml;*.pdf)|*.xml;*.pdf|Fatture elettroniche (*.xml)|*.xml|Fatture PDF (*.pdf)|*.pdf",
+            "Importa fatture");
         if (files.Length == 0) return;
 
         int importate = 0, duplicate = 0;
@@ -81,7 +109,7 @@ public partial class FattureViewModel : ObservableObject, IReloadable
             try
             {
                 await using var stream = File.OpenRead(file);
-                if (await _service.ImportaXmlAsync(stream)) importate++;
+                if (await _service.ImportaAsync(stream, file)) importate++;
                 else duplicate++;
             }
             catch (Exception ex)

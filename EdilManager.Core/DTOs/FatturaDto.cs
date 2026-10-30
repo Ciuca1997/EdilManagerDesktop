@@ -25,7 +25,7 @@ public class FatturaDetailDto
     public string? ModalitaPagamento { get; set; }
     public DateOnly? DataScadenzaPagamento { get; set; }
     public decimal? ImportoPagamento { get; set; }
-    public FornitoreListDto Fornitore { get; set; } = null!;
+    public FornitoreDetailDto Fornitore { get; set; } = null!;
     public CantiereListDto? Cantiere { get; set; }
     public IEnumerable<RigaFatturaDto> Righe { get; set; } = [];
 }

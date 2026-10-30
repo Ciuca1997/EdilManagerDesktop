@@ -5,10 +5,10 @@
     <DockPanel>
         <Grid DockPanel.Dock="Top" Margin="24,16">
             <TextBlock Text="Fatture" Style="{StaticResource PageTitle}" />
-            <Button HorizontalAlignment="Right" Command="{Binding ImportXmlCommand}">
+            <Button HorizontalAlignment="Right" Command="{Binding ImportCommand}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="FileUploadOutline" VerticalAlignment="Center" />
-                    <TextBlock Text="Importa XML" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Importa fatture" Margin="8,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
         </Grid>
@@ -27,7 +27,7 @@
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="Nessuna fattura." HorizontalAlignment="Center"
                            Foreground="{StaticResource MutedBrush}" />
-                <TextBlock Text="Usa «Importa XML» per caricare una o più fatture elettroniche."
+                <TextBlock Text="Usa «Importa fatture» per caricare uno o più file XML (FatturaPA) o PDF."
                            Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource MutedBrush}" />
             </StackPanel>
@@ -38,6 +38,12 @@
                       SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
                       Background="Transparent" RowBackground="Transparent"
                       HorizontalGridLinesBrush="{StaticResource DividerBrush}">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <EventSetter Event="MouseDoubleClick" Handler="OnRowDoubleClick" />
+                        <Setter Property="Cursor" Value="Hand" />
+                    </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="120" />
                     <DataGridTextColumn Header="Numero" Binding="{Binding Numero}" Width="110" />
@@ -48,6 +54,18 @@
                                         HeaderStyle="{StaticResource RightHeader}"
                                         ElementStyle="{StaticResource RightCell}" />
                     <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="110" />
+                    <DataGridTemplateColumn Width="48">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Dettaglio"
+                                        Width="32" Height="32" HorizontalAlignment="Right"
+                                        Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <materialDesign:PackIcon Kind="ChevronRight" Width="20" Height="20" />
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

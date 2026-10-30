@@ -95,7 +95,8 @@ public class PecImportService
         }
     }
 
-    public async Task SalvaFatturaAsync(Fornitore fornitore, Fattura fattura, string? cup, CancellationToken ct = default)
+    public async Task SalvaFatturaAsync(Fornitore fornitore, Fattura fattura, string? cup,
+        CancellationToken ct = default, bool aggiornaAnagrafica = true)
     {
         // Upsert fornitore per P.IVA
         var fornitoreSalvato = await _db.Fornitori
@@ -106,7 +107,7 @@ public class PecImportService
             _db.Fornitori.Add(fornitore);
             fornitoreSalvato = fornitore;
         }
-        else
+        else if (aggiornaAnagrafica)
         {
             fornitoreSalvato.Denominazione = fornitore.Denominazione;
             fornitoreSalvato.Indirizzo = fornitore.Indirizzo;
