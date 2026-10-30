@@ -43,7 +43,7 @@ jobs:
         run: vpk download github --repoUrl $env:RELEASES_REPO --token ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pack
-        run: vpk pack --packId EdilManager --packVersion $env:VERSION --packDir publish --mainExe EdilManager.exe
+        run: vpk pack --packId EdilManager --packVersion $env:VERSION --packDir publish --mainExe EdilManager.exe --icon EdilManager.Desktop/Assets/icona.ico
 
       - name: Pubblica la Release
         run: vpk upload github --repoUrl $env:RELEASES_REPO --publish --releaseName "EdilManager $env:VERSION" --tag "v$env:VERSION" --token ${{ secrets.GITHUB_TOKEN }}

@@ -7,6 +7,12 @@ public class Impostazioni
     // Se attivo, ogni fattura importata viene copiata in CartellaArchivio.
     public bool ArchivioAttivo { get; set; }
     public string? CartellaArchivio { get; set; }
+
+    // Cartella da cui "Importa cartella" legge le fatture con un clic (se manca o non esiste più, la si sceglie al momento).
+    public string? CartellaImportazione { get; set; }
+
+    // Cartella in cui si aprono i salvataggi dei fogli presenze.
+    public string? CartellaEsportazione { get; set; }
 }
 
 // Impostazioni dell'utente in un file JSON nella cartella dati: sopravvive agli aggiornamenti e si estende aggiungendo proprietà.
@@ -33,6 +39,8 @@ public class ImpostazioniService
             {
                 ArchivioAttivo = _corrente.ArchivioAttivo,
                 CartellaArchivio = _corrente.CartellaArchivio,
+                CartellaImportazione = _corrente.CartellaImportazione,
+                CartellaEsportazione = _corrente.CartellaEsportazione,
             };
         }
     }

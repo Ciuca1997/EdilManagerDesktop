@@ -10,7 +10,12 @@
     <RootNamespace>EdilManager.Desktop</RootNamespace>
     <StartupObject>EdilManager.Desktop.Program</StartupObject>
     <Version>1.0.0</Version>
+    <ApplicationIcon>Assets/icona.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets/icona.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EdilManager.Core\EdilManager.Core.csproj" />

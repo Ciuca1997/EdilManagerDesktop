@@ -1,3 +1,4 @@
+using System.IO;
 using EdilManager.Desktop.ViewModels;
 using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
@@ -42,15 +43,18 @@ public class DialogService
         }
     }
 
-    public string? PickSaveFile(string filter, string title, string fileName)
+    // cartellaIniziale: se esiste, il dialogo si apre lì (altrimenti Windows ricorda l'ultima cartella usata).
+    public string? PickSaveFile(string filter, string title, string fileName, string? cartellaIniziale = null)
     {
         var dialog = new SaveFileDialog { Filter = filter, Title = title, FileName = fileName, OverwritePrompt = true };
+        if (Directory.Exists(cartellaIniziale)) dialog.InitialDirectory = cartellaIniziale;
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
 
-    public string? PickFolder(string title)
+    public string? PickFolder(string title, string? cartellaIniziale = null)
     {
         var dialog = new OpenFolderDialog { Title = title };
+        if (Directory.Exists(cartellaIniziale)) dialog.InitialDirectory = cartellaIniziale;
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
 }

@@ -28,18 +28,20 @@ public partial class DipendenteDetailViewModel : ObservableObject
     private readonly DipendenteService _dipendenti;
     private readonly PresenzaService _presenze;
     private readonly CantiereService _cantieri;
+    private readonly ImpostazioniService _impostazioni;
     private readonly DialogService _dialogs;
     private readonly INavigationService _nav;
     private int _loadVersion;
 
     public DipendenteDetailViewModel(
         DipendenteDetailDto dipendente, DipendenteService dipendenti, PresenzaService presenze,
-        CantiereService cantieri, DialogService dialogs, INavigationService nav)
+        CantiereService cantieri, DialogService dialogs, INavigationService nav, ImpostazioniService impostazioni)
     {
         _dipendente = dipendente;
         _dipendenti = dipendenti;
         _presenze = presenze;
         _cantieri = cantieri;
+        _impostazioni = impostazioni;
         _dialogs = dialogs;
         _nav = nav;
         _periodo = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -162,7 +164,8 @@ public partial class DipendenteDetailViewModel : ObservableObject
     [RelayCommand]
     private async Task EsportaAsync()
     {
-        var form = EsportaViewModel.PerDipendente(_dialogs, _presenze, Dipendente.Id, NomeCompleto, new MeseOption(Periodo.Year, Periodo.Month), Dipendente.DataAssunzione);
+        var form = EsportaViewModel.PerDipendente(_dialogs, _presenze, Dipendente.Id, NomeCompleto, new MeseOption(Periodo.Year, Periodo.Month), Dipendente.DataAssunzione,
+            _impostazioni.Corrente.CartellaEsportazione);
         if (await _dialogs.ShowAsync(form) is string percorso) await _dialogs.MostraEsportazioneAsync(percorso);
     }
 

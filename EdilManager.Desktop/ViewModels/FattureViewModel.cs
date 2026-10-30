@@ -30,13 +30,17 @@ public partial class FattureViewModel : ObservableObject, IReloadable
     private readonly DialogService _dialogs;
     private readonly INavigationService _nav;
     private readonly IServiceProvider _services;
+    private readonly ImpostazioniService _impostazioni;
 
-    public FattureViewModel(FatturaService service, DialogService dialogs, INavigationService nav, IServiceProvider services)
+    public FattureViewModel(FatturaService service, DialogService dialogs, INavigationService nav, IServiceProvider services,
+        ImpostazioniService impostazioni)
     {
         _service = service;
         _dialogs = dialogs;
         _nav = nav;
         _services = services;
+        _impostazioni = impostazioni;
+        AggiornaTestoCartella();
         _ = ReloadAsync();
     }
 
@@ -109,12 +113,63 @@ public partial class FattureViewModel : ObservableObject, IReloadable
             (progress, ct) => _service.ImportaFileAsync(files, progress, ct));
     }
 
+    // Testo del suggerimento del pulsante: dice da dove importa (o che la prima volta chiederà la cartella).
+    [ObservableProperty]
+    private string _cartellaImportazioneTesto = string.Empty;
+
+    private void AggiornaTestoCartella()
+    {
+        var cartella = _impostazioni.Corrente.CartellaImportazione;
+        CartellaImportazioneTesto = string.IsNullOrWhiteSpace(cartella)
+            ? "Importa tutte le fatture (XML e PDF) di una cartella e delle sue sottocartelle. La prima volta ti chiede quale cartella usare."
+            : $"Importa le fatture da: {cartella}";
+    }
+
+    // Un clic: importa dalla cartella predefinita. Se non è stata scelta, o non esiste più, la si sceglie adesso e viene ricordata.
     [RelayCommand]
     private async Task ImportFolderAsync()
     {
-        var cartella = _dialogs.PickFolder("Scegli la cartella con le fatture (XML e PDF, anche nelle sottocartelle)");
-        if (cartella is null) return;
+        var cartella = _impostazioni.Corrente.CartellaImportazione;
+        if (string.IsNullOrWhiteSpace(cartella) || !Directory.Exists(cartella))
+        {
+            if (!string.IsNullOrWhiteSpace(cartella) &&
+                !await _dialogs.ConfirmAsync("Cartella non trovata",
+                    $"La cartella predefinita per l'importazione non è raggiungibile:\n{cartella}\n\nVuoi sceglierne un'altra?", "Scegli cartella"))
+                return;
 
+            cartella = _dialogs.PickFolder(
+                "Scegli la cartella da cui importare le fatture (XML e PDF, anche nelle sottocartelle): verrà ricordata",
+                cartella);
+            if (cartella is null) return;
+
+            try
+            {
+                _impostazioni.Modifica(i => i.CartellaImportazione = cartella);
+                AppLog.Trace($"IMPOSTAZIONI cartella predefinita per l'importazione: {cartella}");
+                AggiornaTestoCartella();
+            }
+            catch (Exception ex)
+            {
+                // L'importazione prosegue comunque: il percorso semplicemente non verrà ricordato.
+                AppLog.Error("Salvataggio della cartella di importazione fallito", ex);
+            }
+        }
+
+        await ImportaDaCartellaAsync(cartella);
+    }
+
+    // Importa da un'altra cartella, solo questa volta (la cartella predefinita non cambia).
+    [RelayCommand]
+    private async Task ImportOtherFolderAsync()
+    {
+        var cartella = _dialogs.PickFolder(
+            "Scegli la cartella con le fatture (XML e PDF, anche nelle sottocartelle)", _impostazioni.Corrente.CartellaImportazione);
+        if (cartella is null) return;
+        await ImportaDaCartellaAsync(cartella);
+    }
+
+    private async Task ImportaDaCartellaAsync(string cartella)
+    {
         AppLog.Trace($"IMPORT cartella: {cartella}");
         await EseguiImportAsync("Importazione cartella",
             (progress, ct) => _service.ImportaCartellaAsync(cartella, progress, ct));

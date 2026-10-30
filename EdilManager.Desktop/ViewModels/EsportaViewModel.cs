@@ -41,7 +41,7 @@ public partial class EsportaViewModel : ObservableObject
 
     // Foglio del mese per tutti i dipendenti, eventualmente solo per un cantiere.
     public static EsportaViewModel PerMese(DialogService dialogs, PresenzaService presenze, MeseOption mese,
-        IReadOnlyList<CantiereOption> cantieri)
+        IReadOnlyList<CantiereOption> cantieri, string? cartellaIniziale)
     {
         var vm = new EsportaViewModel(dialogs, "Esporta presenze del mese",
             $"Foglio presenze di {mese.Testo} per tutti i dipendenti.",
@@ -49,6 +49,7 @@ public partial class EsportaViewModel : ObservableObject
             v => $"Presenze {mese.Anno}-{mese.Mese:00}" + (v.Cantiere?.Id is null ? string.Empty : $" - {v.Cantiere.Nome}"))
         {
             MostraCantiere = true,
+            CartellaIniziale = cartellaIniziale,
             Cantieri = [new CantiereOption(null, "Tutti i cantieri"), .. cantieri.Where(c => c.Id is not null)],
         };
         vm.Cantiere = vm.Cantieri[0];
@@ -57,7 +58,7 @@ public partial class EsportaViewModel : ObservableObject
 
     // Foglio di un dipendente, giorno per giorno, da un mese a un altro.
     public static EsportaViewModel PerDipendente(DialogService dialogs, PresenzaService presenze, int dipendenteId,
-        string nome, MeseOption meseIniziale, DateOnly assunzione)
+        string nome, MeseOption meseIniziale, DateOnly assunzione, string? cartellaIniziale)
     {
         // Solo i mesi dall'assunzione in poi (se è futura, resta almeno il mese corrente).
         var mesi = MeseOption.Ultimi(36).Where(m => m.Ultimo >= assunzione).DefaultIfEmpty(MeseOption.Ultimi(1)[0]).ToList();
@@ -67,12 +68,16 @@ public partial class EsportaViewModel : ObservableObject
             v => $"Presenze {nome} {v.Da!.Anno}-{v.Da.Mese:00}" + (v.Da == v.A ? string.Empty : $" - {v.A!.Anno}-{v.A.Mese:00}"))
         {
             MostraPeriodo = true,
+            CartellaIniziale = cartellaIniziale,
             Mesi = mesi,
         };
         vm.Da = mesi.FirstOrDefault(m => m == meseIniziale) ?? mesi[0];
         vm.A = vm.Da;
         return vm;
     }
+
+    // Cartella in cui si apre il dialogo di salvataggio (quella predefinita per le esportazioni, se impostata).
+    public string? CartellaIniziale { get; private init; }
 
     public string Titolo { get; }
     public string Descrizione { get; }
@@ -126,7 +131,7 @@ public partial class EsportaViewModel : ObservableObject
         var estensione = IsPdf ? "pdf" : "csv";
         var percorso = _dialogs.PickSaveFile(
             IsPdf ? "Documento PDF (*.pdf)|*.pdf" : "File CSV per Excel (*.csv)|*.csv",
-            "Salva il foglio presenze", PulisciNome(_nomeSuggerito(this)) + "." + estensione);
+            "Salva il foglio presenze", PulisciNome(_nomeSuggerito(this)) + "." + estensione, CartellaIniziale);
         if (percorso is null) return;
 
         IsBusy = true;

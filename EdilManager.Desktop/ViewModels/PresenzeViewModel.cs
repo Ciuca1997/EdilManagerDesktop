@@ -93,16 +93,19 @@ public partial class PresenzeViewModel : ObservableObject, IReloadable
     private readonly PresenzaService _presenze;
     private readonly CantiereService _cantieri;
     private readonly DialogService _dialogs;
+    private readonly ImpostazioniService _impostazioni;
     private readonly SemaphoreSlim _salvataggio = new(1, 1);
     private Dictionary<(int, DateOnly), List<PresenzaDto>> _perCella = [];
     private int _versione;
 
-    public PresenzeViewModel(DipendenteService dipendenti, PresenzaService presenze, CantiereService cantieri, DialogService dialogs)
+    public PresenzeViewModel(DipendenteService dipendenti, PresenzaService presenze, CantiereService cantieri, DialogService dialogs,
+        ImpostazioniService impostazioni)
     {
         _dipendenti = dipendenti;
         _presenze = presenze;
         _cantieri = cantieri;
         _dialogs = dialogs;
+        _impostazioni = impostazioni;
         _periodo = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _ = CaricaAsync(ricostruisci: true);
     }
@@ -175,7 +178,8 @@ public partial class PresenzeViewModel : ObservableObject, IReloadable
     [RelayCommand]
     private async Task EsportaAsync()
     {
-        var form = EsportaViewModel.PerMese(_dialogs, _presenze, new MeseOption(Anno, Mese), Cantieri);
+        var form = EsportaViewModel.PerMese(_dialogs, _presenze, new MeseOption(Anno, Mese), Cantieri,
+            _impostazioni.Corrente.CartellaEsportazione);
         if (await _dialogs.ShowAsync(form) is string percorso) await _dialogs.MostraEsportazioneAsync(percorso);
     }
 

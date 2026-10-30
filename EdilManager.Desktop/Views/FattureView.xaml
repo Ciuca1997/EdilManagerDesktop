@@ -6,13 +6,18 @@
         <Grid DockPanel.Dock="Top" Margin="24,16">
             <TextBlock Text="Fatture" Style="{StaticResource PageTitle}" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,8,0"
+                <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                         Command="{Binding ImportFolderCommand}"
-                        ToolTip="Cerca fatture XML e PDF in una cartella e nelle sue sottocartelle">
+                        ToolTip="{Binding CartellaImportazioneTesto}">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="FolderSearchOutline" VerticalAlignment="Center" />
                         <TextBlock Text="Importa cartella" Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
+                </Button>
+                <Button Style="{StaticResource MaterialDesignIconButton}" Margin="2,0,8,0" Width="36" Height="36"
+                        Command="{Binding ImportOtherFolderCommand}"
+                        ToolTip="Importa da un'altra cartella, solo questa volta">
+                    <materialDesign:PackIcon Kind="FolderOpenOutline" />
                 </Button>
                 <Button Command="{Binding ImportCommand}">
                     <StackPanel Orientation="Horizontal">
@@ -37,7 +42,7 @@
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="Nessuna fattura." HorizontalAlignment="Center"
                            Foreground="{StaticResource MutedBrush}" />
-                <TextBlock Text="Usa «Importa fatture» per caricare file XML (FatturaPA) o PDF, oppure «Importa cartella» per cercarli in una cartella e nelle sue sottocartelle."
+                <TextBlock Text="Usa «Importa fatture» per caricare file XML (FatturaPA) o PDF, oppure «Importa cartella» per leggere in un colpo solo una cartella e le sue sottocartelle (la prima volta ti chiede quale)."
                            Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource MutedBrush}" />
             </StackPanel>

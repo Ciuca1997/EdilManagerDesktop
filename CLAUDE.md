@@ -89,6 +89,11 @@ Come funziona l'interfaccia:
   cambia con un XML successivo. XML e PDF della stessa fattura finiscono entrambi nell'archivio (nomi diversi per estensione).
 - **Importa cartella** (pulsante nella schermata Fatture, `FatturaService.ImportaCartellaAsync`): cerca `.xml` e `.pdf` in una cartella
   e in tutte le sottocartelle, importa quelli validi e scarta gli altri con il motivo (riepilogo finale con conteggi e i primi problemi).
+  Si importa con **un clic dalla cartella predefinita** (`Impostazioni.CartellaImportazione`): la prima volta, o se la cartella non esiste
+  più (in quel caso lo dice), la si sceglie al momento e viene ricordata. Il pulsante con la cartella aperta accanto importa da
+  un'altra cartella solo per quella volta. In Impostazioni si cambia o si toglie, e compare un avviso se coincide con (o contiene) la
+  cartella dell'archivio fatture. Analogamente `Impostazioni.CartellaEsportazione` è la cartella in cui si apre il salvataggio dei fogli presenze
+  (il nome del file si conferma sempre, per non sovrascrivere per sbaglio; senza impostazione Windows riapre l'ultima cartella usata).
   Gli XML sono elaborati prima dei PDF, così se esistono entrambi per la stessa fattura vince l'XML (più completo) e il PDF risulta duplicato.
   I PDF non nel formato standard sono accettati solo in modalità rigorosa (`FatturaPdfParser.Parse(..., rigoroso: true)`):
   imponibile, imposta e totale devono essere tutti trovati e coerenti, per non importare contratti o preventivi come fatture.
@@ -142,6 +147,11 @@ Esiste nel codice ma **non ha ancora una schermata**: import da PEC (`PecImportS
 Cose da ricordare:
 - Il repo deve restare **pubblico**, altrimenti l'app installata non può leggere le Release senza token.
 - La versione dell'app viene dal tag, non dal `.csproj`: per le build locali vale `1.0.0`.
+- Icona: `EdilManager.Desktop/Assets/icona.ico` (edificio bianco con gru gialla su blu; PNG a 16, 24, 32, 48, 64, 128, 256 px, con una
+  versione semplificata fino a 32 px perché i dettagli non reggono) e `icona.png` a 512 px. È collegata a `ApplicationIcon` nel `.csproj`
+  (icona dell'exe), a `Icon` di `MainWindow` (barra del titolo) e a `vpk pack --icon` nel workflow (Setup.exe e collegamenti).
+  È stata disegnata con un programma di prova usa e getta (System.Drawing), non salvato nel repo: per cambiarla si parte da `icona.png`
+  con un editor di immagini, oppure si ridisegna da zero e si rigenera il `.ico`.
 - L'aggiornamento funziona solo con l'app **installata** (da `Setup.exe`), non da Visual Studio né con `dotnet run`.
 - Per provarlo: installa una versione, pubblica una versione più alta, riapri l'app installata (verificato con v1.1.0).
 - Il `Setup.exe` pesa circa 100 MB (runtime incluso) e non è firmato: Windows può mostrare un avviso al primo avvio.
