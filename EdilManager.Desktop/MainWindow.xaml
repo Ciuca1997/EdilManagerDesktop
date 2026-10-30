@@ -25,8 +25,21 @@
                     </StackPanel>
                 </Border>
 
-                <StackPanel DockPanel.Dock="Bottom" Margin="12,8,12,12">
-                    <Button Command="{Binding CheckUpdatesCommand}"
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,12">
+                    <ListBox ItemsSource="{Binding BottomNavItems}"
+                             SelectedItem="{Binding SelectedBottomItem}"
+                             ItemContainerStyle="{StaticResource NavListBoxItem}"
+                             Background="Transparent" BorderThickness="0" Margin="0,0,0,4">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="{Binding Icon}" Width="22" Height="22" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Title}" Margin="14,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Margin="12,0,12,0" Command="{Binding CheckUpdatesCommand}"
                             Style="{StaticResource MaterialDesignFlatButton}"
                             HorizontalContentAlignment="Left" Foreground="{StaticResource MutedBrush}">
                         <StackPanel Orientation="Horizontal">
@@ -34,7 +47,7 @@
                             <TextBlock Text="Controlla aggiornamenti" Margin="8,0,0,0" FontSize="12" />
                         </StackPanel>
                     </Button>
-                    <TextBlock Text="{Binding VersionText}" Margin="16,2,0,0" FontSize="11"
+                    <TextBlock Text="{Binding VersionText}" Margin="28,2,0,0" FontSize="11"
                                Foreground="{StaticResource MutedBrush}" />
                 </StackPanel>
 

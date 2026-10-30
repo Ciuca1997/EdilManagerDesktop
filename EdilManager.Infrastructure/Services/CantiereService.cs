@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EdilManager.Infrastructure.Services;
 
-public class CantiereService(IDbContextFactory<ApplicationDbContext> factory)
+public class CantiereService(IDbContextFactory<ApplicationDbContext> factory, ArchivioFatture archivio)
 {
     public async Task<List<CantiereListDto>> GetAllAsync(CancellationToken ct = default)
     {
@@ -54,7 +54,8 @@ public class CantiereService(IDbContextFactory<ApplicationDbContext> factory)
         return cantiere;
     }
 
-    public async Task RenameAsync(int id, string nome, CancellationToken ct = default)
+    // Restituisce un avviso se la cartella del cantiere nell'archivio fatture non si è potuta rinominare.
+    public async Task<string?> RenameAsync(int id, string nome, CancellationToken ct = default)
     {
         nome = nome.Trim();
         if (nome.Length == 0)
@@ -65,7 +66,9 @@ public class CantiereService(IDbContextFactory<ApplicationDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         var cantiere = await db.Cantieri.FindAsync([id], ct)
                        ?? throw new InvalidOperationException("Cantiere non trovato.");
+        var vecchioNome = cantiere.Nome;
         cantiere.Nome = nome;
         await db.SaveChangesAsync(ct);
+        return archivio.RinominaCartellaCantiere(vecchioNome, nome);
     }
 }

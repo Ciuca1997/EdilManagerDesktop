@@ -182,6 +182,11 @@ public partial class FattureViewModel : ObservableObject, IReloadable
             case EsitoImport.Scartata: AppLog.Trace($"IMPORT scartata: {p.File} ({p.Motivo})"); break;
             case EsitoImport.Errore: AppLog.Error($"IMPORT errore: {p.File}", p.Eccezione); break;
         }
+
+        if (p.Copie is not null)
+            foreach (var copia in p.Copie) AppLog.Trace($"ARCHIVIO copiata: {copia}");
+        if (p.AvvisoArchivio is not null)
+            AppLog.Error($"ARCHIVIO copia non riuscita per {p.File}: {p.AvvisoArchivio}");
     }
 
     private static string Riepilogo(ImportCartellaResult r)
@@ -195,6 +200,18 @@ public partial class FattureViewModel : ObservableObject, IReloadable
             .AppendLine($"Già presenti: {r.Duplicate}")
             .AppendLine($"Scartati perché non sono fatture valide: {r.Scartati.Count}")
             .Append($"Errori: {r.Errori.Count}");
+
+        // La riga dell'archivio compare solo se è attivo (cioè se ha copiato qualcosa o ci ha provato).
+        if (r.Copiate > 0 || r.AvvisiArchivio.Count > 0)
+            testo.AppendLine().Append($"File copiati nell'archivio: {r.Copiate}");
+        if (r.AvvisiArchivio.Count > 0)
+        {
+            testo.AppendLine().AppendLine().AppendLine(
+                $"Attenzione: la copia nell'archivio non è riuscita per {r.AvvisiArchivio.Count} file (le fatture sono state importate comunque).");
+            foreach (var a in r.AvvisiArchivio.Take(3)) testo.AppendLine($"{a.File}: {a.Motivo}");
+            if (r.AvvisiArchivio.Count > 3) testo.AppendLine("…");
+            testo.Append($"Dettagli in: {AppPaths.TraceLogFile}");
+        }
 
         var dettagli = r.Errori.Concat(r.Scartati).Take(6).ToList();
         if (dettagli.Count > 0)

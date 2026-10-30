@@ -96,6 +96,8 @@ public partial class CantieriViewModel : ObservableObject, IReloadable
     private async Task EditAsync(CantiereRow row)
     {
         var form = new CantiereFormViewModel(_service, _dialogs, row.Id, row.Nome, row.CUP);
-        if (await _dialogs.ShowAsync(form) is true) await ReloadAsync();
+        if (await _dialogs.ShowAsync(form) is not true) return;
+        await ReloadAsync();
+        if (form.Avviso is not null) await _dialogs.MessageAsync("Archivio fatture", form.Avviso);
     }
 }

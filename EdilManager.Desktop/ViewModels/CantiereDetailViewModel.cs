@@ -69,6 +69,8 @@ public partial class CantiereDetailViewModel : ObservableObject
         {
             AppLog.Error("Ricarica cantiere dopo la rinomina fallita", ex);
         }
+
+        if (form.Avviso is not null) await _dialogs.MessageAsync("Archivio fatture", form.Avviso);
     }
 
     [RelayCommand]

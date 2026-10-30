@@ -23,10 +23,18 @@ public partial class MainViewModel : ObservableObject, INavigationService
             new NavItem("Fornitori", "StorefrontOutline", () => services.GetRequiredService<FornitoriViewModel>()),
             new NavItem("Cantieri", "Crane", () => services.GetRequiredService<CantieriViewModel>()),
         ];
+        BottomNavItems =
+        [
+            new NavItem("Impostazioni", "CogOutline", () => services.GetRequiredService<ImpostazioniViewModel>()),
+        ];
         SelectedNavItem = NavItems[0];
     }
 
     public IReadOnlyList<NavItem> NavItems { get; }
+
+    // Voci in fondo alla barra laterale (sopra "Controlla aggiornamenti"): hanno una selezione propria,
+    // ma è sempre selezionata una sola voce tra le due liste.
+    public IReadOnlyList<NavItem> BottomNavItems { get; }
 
     public string VersionText => $"Versione {AppInfo.Version}";
 
@@ -36,9 +44,21 @@ public partial class MainViewModel : ObservableObject, INavigationService
     [ObservableProperty]
     private object? _currentPage;
 
+    [ObservableProperty]
+    private NavItem? _selectedBottomItem;
+
     partial void OnSelectedNavItemChanged(NavItem? value)
     {
         if (value is null) return;
+        SelectedBottomItem = null;
+        _history.Clear();
+        CurrentPage = value.CreatePage();
+    }
+
+    partial void OnSelectedBottomItemChanged(NavItem? value)
+    {
+        if (value is null) return;
+        SelectedNavItem = null;
         _history.Clear();
         CurrentPage = value.CreatePage();
     }

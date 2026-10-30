@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EdilManager.Infrastructure.Services;
 
-public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
+public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, ArchivioFatture archivio)
 {
     public async Task<List<FatturaListDto>> GetAllAsync(CancellationToken ct = default)
     {
@@ -68,8 +68,8 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
     }
 
     // Sceglie il parser in base all'estensione del file.
-    // Restituisce false se la fattura (stesso fornitore, numero e data) era già presente.
-    public async Task<bool> ImportaAsync(Stream contenuto, string nomeFile, CancellationToken ct = default,
+    // Nuova = false se la fattura (stesso fornitore, numero e data) era già presente.
+    public async Task<EsitoSalvataggio> ImportaAsync(Stream contenuto, string nomeFile, CancellationToken ct = default,
         bool pdfRigoroso = false)
     {
         var estensione = Path.GetExtension(nomeFile).ToLowerInvariant();
@@ -82,10 +82,8 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
         };
 
         await using var db = await factory.CreateDbContextAsync(ct);
-        var prima = await db.Fatture.CountAsync(ct);
         var import = new PecImportService(db, NullLogger<PecImportService>.Instance);
-        await import.SalvaFatturaAsync(fornitore, fattura, cup, ct, aggiornaAnagrafica: !isPdf);
-        return await db.Fatture.CountAsync(ct) > prima;
+        return await import.SalvaFatturaAsync(fornitore, fattura, cup, ct, aggiornaAnagrafica: !isPdf);
     }
 
     // Cerca fatture XML e PDF nella cartella e in tutte le sottocartelle e importa quelle valide; il resto viene scartato
@@ -136,6 +134,7 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
             EsitoImport esito;
             string? motivo = null;
             Exception? eccezione = null;
+            RisultatoArchivio? copia = null;
             try
             {
                 if (new FileInfo(percorso).Length > DimensioneMassima)
@@ -146,12 +145,15 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
                 else
                 {
                     // La lettura del PDF è pesante: fuori dal thread dell'interfaccia.
-                    var nuova = await Task.Run(async () =>
+                    (esito, copia) = await Task.Run(async () =>
                     {
-                        await using var stream = File.OpenRead(percorso);
-                        return await ImportaAsync(stream, percorso, CancellationToken.None, pdfRigoroso);
+                        EsitoSalvataggio salvata;
+                        await using (var stream = File.OpenRead(percorso))
+                            salvata = await ImportaAsync(stream, percorso, CancellationToken.None, pdfRigoroso);
+                        // Anche per le fatture già presenti: si copia ciò che manca nell'archivio. Una copia fallita
+                        // non invalida l'import (la fattura è già nel database).
+                        return (salvata.Nuova ? EsitoImport.Importata : EsitoImport.Duplicata, archivio.Copia(percorso, salvata));
                     }, CancellationToken.None);
-                    esito = nuova ? EsitoImport.Importata : EsitoImport.Duplicata;
                 }
             }
             catch (InvalidOperationException ex)
@@ -171,7 +173,13 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory)
                 default: risultato.Errori.Add(new FileScartato(nome, motivo!)); break;
             }
             risultato.Elaborati++;
-            progress?.Report(new ImportCartellaProgress(risultato.Elaborati, file.Count, nome, esito, motivo, eccezione));
+            if (copia is not null)
+            {
+                risultato.Copiate += copia.Copiate.Count;
+                if (copia.Avviso is not null) risultato.AvvisiArchivio.Add(new FileScartato(nome, copia.Avviso));
+            }
+            progress?.Report(new ImportCartellaProgress(risultato.Elaborati, file.Count, nome, esito, motivo, eccezione,
+                copia?.Copiate, copia?.Avviso));
         }
 
         return risultato;

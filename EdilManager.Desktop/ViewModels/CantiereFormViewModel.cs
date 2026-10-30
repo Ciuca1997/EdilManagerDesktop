@@ -10,6 +10,9 @@ public partial class CantiereFormViewModel(
 {
     public string Cup { get; } = cup;
 
+    // Avviso sulla cartella in archivio (es. non rinominabile): il nome nel database è comunque cambiato.
+    public string? Avviso { get; private set; }
+
     [ObservableProperty]
     private string _nome = nome;
 
@@ -25,7 +28,7 @@ public partial class CantiereFormViewModel(
         ErrorMessage = null;
         try
         {
-            await service.RenameAsync(id, Nome);
+            Avviso = await service.RenameAsync(id, Nome);
             dialogs.Close(true);
         }
         catch (Exception ex)

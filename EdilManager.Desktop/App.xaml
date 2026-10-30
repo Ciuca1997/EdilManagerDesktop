@@ -99,6 +99,9 @@
             <DataTemplate DataType="{x:Type vm:CantiereDetailViewModel}">
                 <views:CantiereDetailView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ImpostazioniViewModel}">
+                <views:ImpostazioniView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:FornitoriViewModel}">
                 <views:FornitoriView />
             </DataTemplate>

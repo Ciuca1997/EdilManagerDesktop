@@ -1,3 +1,4 @@
+using EdilManager.Core.DTOs;
 using EdilManager.Core.Entities;
 using EdilManager.Infrastructure.Persistence;
 using MailKit;
@@ -95,7 +96,7 @@ public class PecImportService
         }
     }
 
-    public async Task SalvaFatturaAsync(Fornitore fornitore, Fattura fattura, string? cup,
+    public async Task<EsitoSalvataggio> SalvaFatturaAsync(Fornitore fornitore, Fattura fattura, string? cup,
         CancellationToken ct = default, bool aggiornaAnagrafica = true)
     {
         // Upsert fornitore per P.IVA
@@ -121,6 +122,7 @@ public class PecImportService
         fattura.FornitoreId = fornitoreSalvato.Id;
 
         // Associa cantiere per CUP se presente
+        string? nomeCantiere = null;
         if (!string.IsNullOrWhiteSpace(cup))
         {
             var cantiere = await _db.Cantieri.FirstOrDefaultAsync(c => c.CUP == cup, ct);
@@ -131,6 +133,7 @@ public class PecImportService
                 await _db.SaveChangesAsync(ct);
             }
             fattura.CantiereId = cantiere.Id;
+            nomeCantiere = cantiere.Nome;
         }
 
         // Evita duplicati (stesso fornitore + numero + data)
@@ -139,9 +142,14 @@ public class PecImportService
             f.NumeroDocumento == fattura.NumeroDocumento &&
             f.DataDocumento == fattura.DataDocumento, ct);
 
-        if (esiste) return;
+        if (!esiste)
+        {
+            _db.Fatture.Add(fattura);
+            await _db.SaveChangesAsync(ct);
+        }
 
-        _db.Fatture.Add(fattura);
-        await _db.SaveChangesAsync(ct);
+        // Nomi dal database (non dal file): una fattura già presente può avere fornitore/cantiere rinominati.
+        return new EsitoSalvataggio(!esiste, fornitoreSalvato.Denominazione, nomeCantiere,
+            fattura.NumeroDocumento, fattura.DataDocumento);
     }
 }

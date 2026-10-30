@@ -63,6 +63,8 @@ public partial class App : Application
         sc.AddDbContextFactory<ApplicationDbContext>(o => o.UseSqlite($"Data Source={AppPaths.DatabasePath}"));
         sc.AddSingleton<DipendenteService>();
         sc.AddSingleton<PresenzaService>();
+        sc.AddSingleton(new ImpostazioniService(Path.Combine(AppPaths.DataDirectory, "settings.json")));
+        sc.AddSingleton<ArchivioFatture>();
         sc.AddSingleton<CantiereService>();
         sc.AddSingleton<FornitoreService>();
         sc.AddSingleton<FatturaService>();
@@ -77,6 +79,7 @@ public partial class App : Application
         sc.AddTransient<DipendentiViewModel>();
         sc.AddTransient<FattureViewModel>();
         sc.AddTransient<FornitoriViewModel>();
+        sc.AddTransient<ImpostazioniViewModel>();
         sc.AddTransient<CantieriViewModel>();
         sc.AddSingleton<MainWindow>();
 

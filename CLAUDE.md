@@ -59,6 +59,16 @@ Come funziona l'interfaccia:
   Il CUP si accetta solo nel formato esatto (lettera, 2 cifre, lettera, 11 cifre): CUP con refusi del fornitore (14 o 16 caratteri) vengono ignorati.
   Se P.IVA, numero, data o totale non si trovano il file è rifiutato. Per i PDF l'anagrafica di un fornitore già presente non viene sovrascritta.
   Attenzione: la P.IVA dell'azienda stessa compare come cessionario in ogni fattura, per questo nel percorso standard si legge solo il blocco del cedente.
+- **Impostazioni** (voce in fondo alla barra laterale, `ImpostazioniViewModel`; i valori stanno in `settings.json` nella cartella dati,
+  gestito da `ImpostazioniService`: per aggiungere un'opzione basta una proprietà in `Impostazioni`).
+  Per ora c'è l'**archivio fatture** (`ArchivioFatture`): se attivo, ogni file importato (XML o PDF, anche se la fattura è già presente
+  ma il file manca) viene copiato in `<destinazione>\fornitori\<fornitore>\` e, se la fattura ha un cantiere, anche in
+  `<destinazione>\cantieri\<cantiere>\`. Il file si chiama `<data> <fornitore> - <numero>.<ext>` (nome dipendente solo dalla fattura:
+  un reimport non crea doppioni e non sovrascrive mai). I nomi di fornitore/cantiere sono quelli del database. Rinominare un cantiere
+  rinomina anche la sua cartella (`CantiereService.RenameAsync` restituisce un avviso se non ci riesce). Una copia fallita non invalida
+  l'import (avviso nel riepilogo e nel log); un file già dentro la cartella archivio non viene ricopiato. Nomi ripuliti per Windows
+  (caratteri vietati, punto finale, nomi riservati, max 80 caratteri). Le cartelle dei fornitori non si rinominano se la denominazione
+  cambia con un XML successivo. XML e PDF della stessa fattura finiscono entrambi nell'archivio (nomi diversi per estensione).
 - **Importa cartella** (pulsante nella schermata Fatture, `FatturaService.ImportaCartellaAsync`): cerca `.xml` e `.pdf` in una cartella
   e in tutte le sottocartelle, importa quelli validi e scarta gli altri con il motivo (riepilogo finale con conteggi e i primi problemi).
   Gli XML sono elaborati prima dei PDF, così se esistono entrambi per la stessa fattura vince l'XML (più completo) e il PDF risulta duplicato.
@@ -92,7 +102,7 @@ Esistono nel codice ma **non hanno ancora una schermata**: import da PEC (`PecIm
 
 ## Dati e database
 
-- Database e log: `%LocalAppData%\EdilManagerData` (`edilmanager.db`, `backups\`, `logs\trace.log`, `logs\error.log`).
+- Database, impostazioni e log: `%LocalAppData%\EdilManagerData` (`edilmanager.db`, `settings.json`, `backups\`, `logs\trace.log`, `logs\error.log`).
   `AppLog.Trace` scrive la cronologia (avvio, import file per file con esito e motivo); `AppLog.Error` scrive il dettaglio
   dell'eccezione in `error.log` e una riga di sintesi anche in `trace.log`. Oltre 5 MB il file diventa `.old`.
   Sono volutamente **fuori** da `%LocalAppData%\EdilManager`, la cartella di Velopack che viene sostituita a ogni aggiornamento.

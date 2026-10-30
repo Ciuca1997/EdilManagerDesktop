@@ -47,8 +47,13 @@ public class RigaFatturaDto
 public enum EsitoImport { Importata, Duplicata, Scartata, Errore }
 
 // Esito null = il file sta per essere elaborato; altrimenti è il risultato di quel file.
+// Copie: percorsi dei file copiati nell'archivio per questo file; AvvisoArchivio: copia non riuscita (l'import resta valido).
 public record ImportCartellaProgress(
-    int Elaborati, int Totale, string File, EsitoImport? Esito = null, string? Motivo = null, Exception? Eccezione = null);
+    int Elaborati, int Totale, string File, EsitoImport? Esito = null, string? Motivo = null, Exception? Eccezione = null,
+    IReadOnlyList<string>? Copie = null, string? AvvisoArchivio = null);
+
+// Fattura salvata (o già presente) con fornitore e cantiere come stanno nel database: servono per archiviare il file.
+public record EsitoSalvataggio(bool Nuova, string Fornitore, string? Cantiere, string Numero, DateOnly Data);
 
 public record FileScartato(string File, string Motivo);
 
@@ -58,6 +63,10 @@ public class ImportCartellaResult
     // File effettivamente elaborati: meno di Totale se l'operazione è stata annullata.
     public int Elaborati { get; set; }
     public bool Annullata { get; set; }
+    // File copiati nella cartella archivio (se attiva).
+    public int Copiate { get; set; }
+    // Copie in archivio non riuscite: l'import di quelle fatture è comunque valido.
+    public List<FileScartato> AvvisiArchivio { get; } = [];
     public int Importate { get; set; }
     public int Duplicate { get; set; }
     // File che non sono fatture valide (altri XML/PDF, importi incoerenti, scansioni...).
