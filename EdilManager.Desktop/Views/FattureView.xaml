@@ -68,7 +68,7 @@
                        Foreground="{StaticResource MutedBrush}"
                        Visibility="{Binding NessunRisultato, Converter={StaticResource BoolToVis}}" />
 
-            <DataGrid x:Name="Griglia" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
+            <DataGrid x:Name="Griglia" PreviewMouseRightButtonDown="OnGrigliaRightClick" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
                       CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
                       CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Extended"
                       SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"

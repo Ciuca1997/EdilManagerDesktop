@@ -16,6 +16,21 @@ public partial class FattureView : UserControl
             vm.OpenCommand.Execute(row);
     }
 
+    // Il clic destro non seleziona la riga: senza questo il menu agirebbe sulla selezione precedente, magari altre fatture.
+    private void OnGrigliaRightClick(object sender, MouseButtonEventArgs e)
+    {
+        var elemento = e.OriginalSource as DependencyObject;
+        while (elemento is not null and not DataGridRow)
+            elemento = elemento is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(elemento)
+                : LogicalTreeHelper.GetParent(elemento);
+        if (elemento is not DataGridRow { Item: FatturaRow } riga) return;
+        if (riga.IsSelected) return;
+
+        Griglia.SelectedItems.Clear();
+        riga.IsSelected = true;
+    }
+
     private async void OnAssegnaCantiere(object sender, RoutedEventArgs e)
     {
         if (DataContext is not FattureViewModel vm) return;

@@ -17,7 +17,7 @@ public partial class EsportaFattureViewModel : ObservableObject
     private readonly string? _cartellaIniziale;
 
     public EsportaFattureViewModel(DialogService dialogs, EsportaFattureService service, ImpostazioniService impostazioni,
-        IReadOnlyList<int> anni)
+        IReadOnlyList<int> anni, int annoPredefinito)
     {
         _dialogs = dialogs;
         _service = service;
@@ -26,7 +26,7 @@ public partial class EsportaFattureViewModel : ObservableObject
         ArchivioPronto = corrente.CartellaArchivio is { Length: > 0 } c && Directory.Exists(c);
 
         Anni = anni;
-        _anno = anni[0];
+        _anno = annoPredefinito;
         var oggi = DateTime.Today;
         _dal = new DateTime(oggi.Year, 1, 1);
         _al = oggi;

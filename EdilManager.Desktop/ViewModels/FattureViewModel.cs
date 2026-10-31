@@ -119,7 +119,8 @@ public partial class FattureViewModel : ObservableObject, IReloadable
     {
         try
         {
-            var form = new EsportaFattureViewModel(_dialogs, _esporta, _impostazioni, await _esporta.GetAnniAsync());
+            var (anni, predefinito) = await _esporta.GetAnniAsync();
+            var form = new EsportaFattureViewModel(_dialogs, _esporta, _impostazioni, anni, predefinito);
             if (await _dialogs.ShowAsync(form) is not EsitoEsportazioneFatture esito) return;
             await MostraEsportazioneAsync(esito);
         }

@@ -121,6 +121,18 @@ public class PecImportService
         await _db.SaveChangesAsync(ct);
         fattura.FornitoreId = fornitoreSalvato.Id;
 
+        // Evita duplicati (stesso fornitore + numero + data). Una fattura già presente resta com'è, anche nel cantiere
+        // (può essere stato cambiato a mano): per l'archivio valgono i dati salvati, non quelli del file.
+        var esistente = await _db.Fatture
+            .Where(f => f.FornitoreId == fattura.FornitoreId &&
+                        f.NumeroDocumento == fattura.NumeroDocumento &&
+                        f.DataDocumento == fattura.DataDocumento)
+            .Select(f => new { f.CantiereId, Cantiere = f.Cantiere != null ? f.Cantiere.Nome : null, f.TotaleDocumento })
+            .FirstOrDefaultAsync(ct);
+        if (esistente is not null)
+            return new EsitoSalvataggio(false, fornitoreSalvato.Denominazione, esistente.Cantiere,
+                fattura.NumeroDocumento, fattura.DataDocumento, esistente.CantiereId, false, esistente.TotaleDocumento, null);
+
         // Associa cantiere per CUP se presente
         string? nomeCantiere = null;
         int? cantiereId = null;
@@ -140,20 +152,11 @@ public class PecImportService
             cantiereId = cantiere.Id;
         }
 
-        // Evita duplicati (stesso fornitore + numero + data)
-        var esiste = await _db.Fatture.AnyAsync(f =>
-            f.FornitoreId == fattura.FornitoreId &&
-            f.NumeroDocumento == fattura.NumeroDocumento &&
-            f.DataDocumento == fattura.DataDocumento, ct);
+        _db.Fatture.Add(fattura);
+        await _db.SaveChangesAsync(ct);
 
-        if (!esiste)
-        {
-            _db.Fatture.Add(fattura);
-            await _db.SaveChangesAsync(ct);
-        }
-
-        // Nomi dal database (non dal file): una fattura già presente può avere fornitore/cantiere rinominati.
-        return new EsitoSalvataggio(!esiste, fornitoreSalvato.Denominazione, nomeCantiere,
+        // Nomi dal database (non dal file): il fornitore può essere stato rinominato.
+        return new EsitoSalvataggio(true, fornitoreSalvato.Denominazione, nomeCantiere,
             fattura.NumeroDocumento, fattura.DataDocumento, cantiereId, cantiereCreato, fattura.TotaleDocumento,
             fattura.Righe.Select(r => r.Descrizione).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d)));
     }

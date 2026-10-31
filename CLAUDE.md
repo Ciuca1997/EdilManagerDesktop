@@ -127,6 +127,8 @@ Come funziona l'interfaccia:
   del nome. Salvare usa `CantiereService.RenameAsync`, quindi anche la cartella dell'archivio prende il nome scelto. «Più tardi» lo lascia così
   (nell'elenco ha l'etichetta «da nominare»: nome uguale al CUP), «Salta tutti» smette di chiedere. Il rilevamento viene da
   `EsitoSalvataggio.CantiereCreato` → `ImportCartellaResult.NuoviCantieri`.
+  Una fattura **già presente** (reimport) non cambia mai e non crea cantieri: per l'archivio vale il cantiere salvato (`PecImportService.SalvaFatturaAsync`),
+  così un reimport non rimette in cartelle sbagliate le fatture assegnate a mano. Provato su 597 PDF reali: 588 fatture distinte (9 file sono doppioni), reimport tutto duplicato.
   **Cantieri senza CUP** (pulsante «Nuovo cantiere»; `Cantiere.Interno`, `CantiereService.CreaInternoAsync`): hanno un codice interno `INT-0001`, `INT-0002`...
   nel campo CUP (mantiene l'indice unico e non può coincidere con un CUP vero), ma l'interfaccia scrive «senza CUP» (`CantiereListDto.CupTesto`/`Etichetta`).
   Le fatture si assegnano a mano: clic destro nell'elenco fatture (anche più righe) o pulsante nel dettaglio (`CantiereFatture`, `FatturaService.ImpostaCantiereAsync`);

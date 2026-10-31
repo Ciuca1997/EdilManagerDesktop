@@ -33,13 +33,14 @@ public class EsportaFattureService(IDbContextFactory<ApplicationDbContext> facto
         int Id, DateOnly Data, string Numero, string Tipo, decimal Imponibile, decimal Imposta, decimal Totale,
         DateOnly? Scadenza, StatoPagamento Stato, DateOnly? DataPagamento, string Fornitore, string PartitaIva, string? Cantiere);
 
-    // Anni in cui ci sono fatture, dal più recente (l'anno corrente c'è sempre).
-    public async Task<List<int>> GetAnniAsync(CancellationToken ct = default)
+    // Anni tra cui scegliere, dal più recente (l'anno corrente c'è sempre) e quello da proporre:
+    // l'ultimo in cui ci sono fatture, per non aprire la maschera su un anno vuoto.
+    public async Task<(List<int> Anni, int Predefinito)> GetAnniAsync(CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var date = await db.Fatture.Select(f => f.DataDocumento).ToListAsync(ct);
-        var anni = date.Select(d => d.Year).Append(DateTime.Today.Year).Distinct().OrderByDescending(a => a).ToList();
-        return anni;
+        var conFatture = (await db.Fatture.Select(f => f.DataDocumento).ToListAsync(ct)).Select(d => d.Year).Distinct().ToList();
+        var anni = conFatture.Append(DateTime.Today.Year).Distinct().OrderByDescending(a => a).ToList();
+        return (anni, conFatture.Count > 0 ? conFatture.Max() : DateTime.Today.Year);
     }
 
     public async Task<EsitoEsportazioneFatture> EsportaAsync(DateOnly da, DateOnly a, string cartellaDestinazione,
