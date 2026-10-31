@@ -80,8 +80,14 @@ public partial class FatturaDetailViewModel : ObservableObject
     private readonly int _giorniScadenza;
 
     public FatturaDetailViewModel(FatturaDetailDto fattura, INavigationService nav, DetailOpener opener,
-        FatturaService service, StatoFatture stati, ImpostazioniService impostazioni, CantiereFatture cantieriFatture)
+        FatturaService service, StatoFatture stati, ImpostazioniService impostazioni, CantiereFatture cantieriFatture,
+        ArchivioFatture archivio, DialogService dialog)
     {
+        _archivio = archivio;
+        _dialog = dialog;
+        _denominazioneFornitore = fattura.Fornitore.Denominazione;
+        _numeroDocumento = fattura.NumeroDocumento;
+        _dataDocumento = fattura.DataDocumento;
         _cantieriFatture = cantieriFatture;
         _nav = nav;
         _opener = opener;
@@ -220,6 +226,42 @@ public partial class FatturaDetailViewModel : ObservableObject
         catch (Exception ex)
         {
             AppLog.Error("Ricaricamento della fattura dopo l'assegnazione del cantiere fallito", ex);
+        }
+    }
+
+    private readonly ArchivioFatture _archivio;
+    private readonly DialogService _dialog;
+    private readonly string _denominazioneFornitore;
+    private readonly string _numeroDocumento;
+    private readonly DateOnly _dataDocumento;
+
+    // Apre il file originale (PDF o XML) dall'archivio fatture con il programma predefinito di Windows.
+    [RelayCommand]
+    private async Task ApriAsync()
+    {
+        if (_archivio.Radice is null)
+        {
+            await _dialog.MessageAsync("Archivio non attivo",
+                "Per aprire il file originale attiva l'archivio fatture in Impostazioni e reimporta la fattura.");
+            return;
+        }
+
+        var file = _archivio.TrovaFile(_denominazioneFornitore, _numeroDocumento, _dataDocumento);
+        if (file.Count == 0)
+        {
+            await _dialog.MessageAsync("File non trovato",
+                "Il file originale di questa fattura non è nell'archivio. Reimporta la fattura con l'archivio attivo per salvarlo.");
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(file[0]) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error($"Apertura del file della fattura fallita: {file[0]}", ex);
+            await _dialog.MessageAsync("Errore", $"Non riesco ad aprire il file: {ex.Message}");
         }
     }
 

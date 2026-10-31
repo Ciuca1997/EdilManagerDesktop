@@ -71,6 +71,8 @@ public partial class App : Application
         sc.AddSingleton<FatturaService>();
         sc.AddSingleton<EsportaFattureService>();
         sc.AddSingleton<DashboardService>();
+        sc.AddSingleton(sp => new ResetDatiService(sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>(),
+            AppPaths.DatabasePath, AppPaths.BackupDirectory));
 
         sc.AddSingleton<DialogService>();
         sc.AddSingleton<StatoFatture>();

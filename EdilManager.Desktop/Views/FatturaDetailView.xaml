@@ -11,6 +11,13 @@
                 </Button>
                 <TextBlock Text="{Binding Titolo}" Style="{StaticResource PageTitle}" Margin="8,0,0,0" />
             </StackPanel>
+            <Button HorizontalAlignment="Right" Command="{Binding ApriCommand}"
+                    ToolTip="Apre il file originale (PDF o XML) dall'archivio fatture">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="OpenInNew" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Apri" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
         </Grid>
         <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
 

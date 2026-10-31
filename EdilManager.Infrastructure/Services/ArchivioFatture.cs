@@ -183,6 +183,28 @@ public class ArchivioFatture(ImpostazioniService impostazioni)
         return true;
     }
 
+    // File della fattura nella cartella del fornitore (PDF prima dell'XML, perché è il più leggibile). Vuoto se l'archivio
+    // è spento o la fattura non è stata archiviata.
+    public IReadOnlyList<string> TrovaFile(string fornitore, string numero, DateOnly data)
+    {
+        if (Radice is not { } radice) return [];
+        try
+        {
+            var cartella = Path.Combine(radice, CartellaFornitori, NomeCartella(fornitore));
+            if (!Directory.Exists(cartella)) return [];
+            var nomeBase = Path.GetFileNameWithoutExtension(
+                NomeFile(new EsitoSalvataggio(false, fornitore, null, numero, data), ".xml"));
+            return Directory.EnumerateFiles(cartella)
+                .Where(p => string.Equals(Path.GetFileNameWithoutExtension(p), nomeBase, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => string.Equals(Path.GetExtension(p), ".pdf", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return [];
+        }
+    }
+
     // "2024-08-09 Edilcentro Marziali S.r.l - 2089.pdf"
     public static string NomeFile(EsitoSalvataggio fattura, string estensione) =>
         $"{fattura.Data:yyyy-MM-dd} {Pulisci(fattura.Fornitore)} - {Pulisci(fattura.Numero)}{estensione.ToLowerInvariant()}";

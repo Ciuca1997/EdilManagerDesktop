@@ -41,6 +41,13 @@ public class DialogService
         return dialog.ShowDialog() == true ? dialog.FileNames : [];
     }
 
+    public string? PickFile(string filter, string title, string? cartellaIniziale = null)
+    {
+        var dialog = new OpenFileDialog { Filter = filter, Title = title, Multiselect = false, CheckFileExists = true };
+        if (Directory.Exists(cartellaIniziale)) dialog.InitialDirectory = cartellaIniziale;
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
     // Dopo un'esportazione: dice dove è stato salvato il file e propone di aprirlo.
     public async Task MostraEsportazioneAsync(string percorso)
     {

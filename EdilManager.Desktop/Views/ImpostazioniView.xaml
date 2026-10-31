@@ -177,6 +177,23 @@
                                  materialDesign:HintAssist.Hint="Giorni" />
                     </StackPanel>
                 </Border>
+
+                <Border CornerRadius="10" Padding="20" Margin="0,16,0,0" Background="{StaticResource SidebarBackground}">
+                    <StackPanel>
+                        <TextBlock Text="Reset e ripristino dei dati" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"
+                                   Text="Il reset cancella tutti i dati (dipendenti, presenze, fatture, cantieri, azienda); impostazioni e file nelle cartelle restano. Prima di ogni reset o ripristino viene salvata una copia del database nella cartella dei backup (backups, dentro la cartella dati), da cui si può tornare indietro con «Ripristina backup»." />
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Ripristina backup…"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Command="{Binding RipristinaBackupCommand}" />
+                            <Button Content="Reset dei dati…" Margin="8,0,0,0"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Foreground="#C62828" BorderBrush="#C62828"
+                                    Command="{Binding ResetDatiCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

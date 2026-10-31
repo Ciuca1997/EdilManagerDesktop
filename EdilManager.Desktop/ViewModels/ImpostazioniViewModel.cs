@@ -13,8 +13,12 @@ public partial class ImpostazioniViewModel : ObservableObject
     private readonly DialogService _dialogs;
     private readonly AziendaService _azienda;
 
-    public ImpostazioniViewModel(ImpostazioniService impostazioni, DialogService dialogs, AziendaService azienda)
+    private readonly ResetDatiService _reset;
+
+    public ImpostazioniViewModel(ImpostazioniService impostazioni, DialogService dialogs, AziendaService azienda,
+        ResetDatiService reset)
     {
+        _reset = reset;
         _impostazioni = impostazioni;
         _dialogs = dialogs;
         _azienda = azienda;
@@ -213,6 +217,84 @@ public partial class ImpostazioniViewModel : ObservableObject
             _impostazioni.Modifica(i => i.GiorniScadenzaPredefiniti = giorni);
             AppLog.Trace($"IMPOSTAZIONI giorni di scadenza predefiniti: {giorni}");
         });
+    }
+
+    // --- Reset dei dati
+
+    [RelayCommand]
+    private async Task ResetDatiAsync()
+    {
+        ErrorMessage = null;
+        if (!await _dialogs.ConfirmAsync("Reset dei dati",
+                "Verranno cancellati TUTTI i dati (dipendenti, presenze, fatture, fornitori, cantieri, azienda).\n\n" +
+                "Le impostazioni e i file nelle cartelle (archivio fatture, importazioni, esportazioni) non vengono toccati. " +
+                "Prima del reset si salva una copia del database nella cartella dei backup, da cui potrai ripristinarlo.\n\n" +
+                "L'app si riavvierà. Vuoi continuare?",
+                "Cancella tutto", destructive: true))
+            return;
+
+        try
+        {
+            var copia = await _reset.ResetAsync();
+            AppLog.Trace($"RESET dati eseguito; copia di sicurezza: {copia ?? "nessuna"}");
+            await _dialogs.MessageAsync("Reset completato",
+                (copia is null ? "" : $"Copia di sicurezza del database:\n{copia}\n\n") + "L'app ora si riavvia.");
+
+            Riavvia();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Reset dei dati fallito", ex);
+            ErrorMessage = $"Reset non riuscito: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task RipristinaBackupAsync()
+    {
+        ErrorMessage = null;
+        var file = _dialogs.PickFile("Backup del database (*.db)|*.db", "Scegli il backup da ripristinare", AppPaths.BackupDirectory);
+        if (file is null) return;
+
+        try
+        {
+            _reset.Verifica(file);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ErrorMessage = ex.Message;
+            return;
+        }
+
+        var data = File.GetLastWriteTime(file);
+        if (!await _dialogs.ConfirmAsync("Ripristina backup",
+                $"Il database attuale verrà sostituito con il backup:\n{Path.GetFileName(file)}\n(salvato il {data:dd/MM/yyyy} alle {data:HH:mm}).\n\n" +
+                "I dati inseriti dopo quella data andranno persi. Prima si salva una copia dei dati attuali nella cartella dei backup, " +
+                "così anche questa operazione si può annullare. Le impostazioni non cambiano.\n\n" +
+                "L'app si riavvierà. Vuoi continuare?",
+                "Ripristina", destructive: true))
+            return;
+
+        try
+        {
+            var copia = await _reset.RipristinaAsync(file);
+            AppLog.Trace($"RIPRISTINO del backup {file}; copia dei dati precedenti: {copia ?? "nessuna"}");
+            await _dialogs.MessageAsync("Ripristino completato",
+                (copia is null ? "" : $"Copia dei dati precedenti:\n{copia}\n\n") + "L'app ora si riavvia.");
+            Riavvia();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Ripristino del backup fallito", ex);
+            ErrorMessage = $"Ripristino non riuscito: {ex.Message}";
+        }
+    }
+
+    private static void Riavvia()
+    {
+        if (Environment.ProcessPath is { } exe)
+            Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true });
+        System.Windows.Application.Current.Shutdown();
     }
 
     // --- Comuni
