@@ -6,6 +6,14 @@
         <Grid DockPanel.Dock="Top" Margin="24,16">
             <TextBlock Text="Fatture" Style="{StaticResource PageTitle}" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,8,0"
+                        Command="{Binding ExportCommand}"
+                        ToolTip="Copia in una cartella le fatture di un anno o di un periodo, divise per cantiere e fornitore">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FolderArrowDownOutline" VerticalAlignment="Center" />
+                        <TextBlock Text="Esporta" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                         Command="{Binding ImportFolderCommand}"
                         ToolTip="{Binding CartellaImportazioneTesto}">

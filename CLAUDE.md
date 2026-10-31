@@ -113,6 +113,14 @@ Come funziona l'interfaccia:
   (ogni file è importato per intero o per niente) e il servizio restituisce il risultato parziale (`Annullata = true`), che
   viene mostrato nel riepilogo. Il dialogo si chiude solo dopo `Shown` (la View è caricata), altrimenti `DialogHost.Close` fallisce.
   Provato pilotando l'app vera con UI Automation (script usa e getta): avanzamento, annulla, riepilogo parziale.
+- **Esporta fatture** (pulsante «Esporta» nella schermata Fatture, `EsportaFattureViewModel`, `EsportaFattureService`): copia in una cartella i file
+  originali (XML/PDF) delle fatture con la **data della fattura** nell'anno scelto o in un periodo dal–al. Crea nella cartella scelta una sottocartella
+  «Fatture 2026» (o «Fatture 2026-06-01 - 2026-07-31»), divisa a scelta: nessuna divisione, per cantiere, per fornitore, oppure cantiere e dentro fornitore
+  (le fatture senza cantiere vanno in «Senza cantiere»). **I file vengono presi dall'archivio fatture** (`fornitori\<fornitore>\<nome file>`): il database non
+  conserva gli originali, quindi le fatture importate con l'archivio spento compaiono solo nel riepilogo. Facoltativo il «Riepilogo fatture.csv»
+  (`;`, virgola decimale, BOM; note di credito in negativo; colonna «File esportato» sì/no). Non sovrascrive mai: file identico = già a posto,
+  file diverso con lo stesso nome = suffisso ` (2)`. Senza archivio impostato si può esportare solo il riepilogo. Cartella di apertura della scelta:
+  `Impostazioni.CartellaEsportazione`.
 - **Cantieri:** elenco con CUP e numero di fatture, ricerca per CUP o nome, rinomina (matita). Si creano da soli importando fatture con un CUP.
   **Nome dei nuovi cantieri:** un CUP mai visto crea un cantiere che si chiama come il CUP; a fine importazione (`FattureViewModel.NominaNuoviCantieriAsync`)
   compare un dialogo per ognuno (`NuovoCantiereViewModel`) con la fattura in cui è stato trovato (fornitore, numero, data, totale, prima riga) e il campo

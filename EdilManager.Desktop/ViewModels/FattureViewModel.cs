@@ -52,11 +52,14 @@ public partial class FattureViewModel : ObservableObject, IReloadable
     private readonly StatoFatture _stati;
     private readonly CantiereFatture _cantieriFatture;
     private readonly CantiereService _cantieri;
+    private readonly EsportaFattureService _esporta;
     private List<FatturaListDto> _tutte = [];
 
     public FattureViewModel(FatturaService service, DialogService dialogs, INavigationService nav, IServiceProvider services,
-        ImpostazioniService impostazioni, StatoFatture stati, CantiereFatture cantieriFatture, CantiereService cantieri)
+        ImpostazioniService impostazioni, StatoFatture stati, CantiereFatture cantieriFatture, CantiereService cantieri,
+        EsportaFattureService esporta)
     {
+        _esporta = esporta;
         _stati = stati;
         _cantieriFatture = cantieriFatture;
         _cantieri = cantieri;
@@ -110,6 +113,51 @@ public partial class FattureViewModel : ObservableObject, IReloadable
 
     // Elenco vuoto per colpa del filtro (non perché non ci sono fatture).
     public bool NessunRisultato => !IsLoading && !HasError && Rows.Count == 0 && _tutte.Count > 0;
+
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        try
+        {
+            var form = new EsportaFattureViewModel(_dialogs, _esporta, _impostazioni, await _esporta.GetAnniAsync());
+            if (await _dialogs.ShowAsync(form) is not EsitoEsportazioneFatture esito) return;
+            await MostraEsportazioneAsync(esito);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Esportazione delle fatture fallita", ex);
+            await _dialogs.MessageAsync("Errore", ex.Message);
+        }
+    }
+
+    private async Task MostraEsportazioneAsync(EsitoEsportazioneFatture e)
+    {
+        var testo = new StringBuilder();
+        testo.AppendLine($"Fatture nel periodo: {e.Fatture}");
+        if (e.ArchivioDisponibile)
+        {
+            testo.AppendLine($"File copiati: {e.FileCopiati}");
+            if (e.FattureSenzaFile > 0)
+                testo.AppendLine($"Fatture senza file nell'archivio: {e.FattureSenzaFile} (importate quando l'archivio non era attivo)");
+        }
+        else
+            testo.AppendLine("File originali non copiati: l'archivio fatture non è impostato.");
+        if (e.RiepilogoScritto) testo.AppendLine("Riepilogo: «Riepilogo fatture.csv»");
+        if (e.Avviso is not null) testo.AppendLine().AppendLine($"Attenzione: {e.Avviso}");
+        testo.AppendLine().Append($"Cartella:\n{e.Cartella}");
+
+        if (!await _dialogs.ConfirmAsync("Esportazione completata", testo.ToString(), "Apri cartella")) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{e.Cartella}\"")
+            { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error($"Apertura della cartella esportata fallita: {e.Cartella}", ex);
+            await _dialogs.MessageAsync("Errore", $"Non riesco ad aprire la cartella: {ex.Message}");
+        }
+    }
 
     public async Task AssegnaCantiereAsync(IReadOnlyCollection<FatturaRow> selezione)
     {

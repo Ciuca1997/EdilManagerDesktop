@@ -145,6 +145,9 @@
             <DataTemplate DataType="{x:Type vm:PagamentoFormViewModel}">
                 <views:PagamentoFormView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:EsportaFattureViewModel}">
+                <views:EsportaFattureView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:NuovoCantiereViewModel}">
                 <views:NuovoCantiereView />
             </DataTemplate>
