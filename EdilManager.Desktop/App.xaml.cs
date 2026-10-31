@@ -72,6 +72,8 @@ public partial class App : Application
         sc.AddSingleton<DashboardService>();
 
         sc.AddSingleton<DialogService>();
+        sc.AddSingleton<StatoFatture>();
+        sc.AddSingleton<CantiereFatture>();
         sc.AddSingleton<DetailOpener>();
         sc.AddSingleton<UpdateService>();
         sc.AddSingleton<MainViewModel>();

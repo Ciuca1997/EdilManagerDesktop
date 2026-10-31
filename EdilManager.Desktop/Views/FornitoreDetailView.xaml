@@ -80,6 +80,8 @@
                                         ElementStyle="{StaticResource RightCell}"
                                         CellStyle="{StaticResource RightCellContainer}" />
                     <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="110" />
+                    <DataGridTextColumn Header="Stato" Binding="{Binding StatoTesto}" Width="150"
+                                        ElementStyle="{StaticResource StatoFatturaText}" />
                 </DataGrid.Columns>
             </DataGrid>
         </DockPanel>

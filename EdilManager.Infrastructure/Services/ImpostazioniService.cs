@@ -16,6 +16,10 @@ public class Impostazioni
 
     // L'utente ha scelto "Più tardi" nel modulo dei dati azienda mostrato al primo avvio: non lo si ripropone a ogni avvio.
     public bool AziendaSaltata { get; set; }
+
+    // Giorni dalla data fattura dopo i quali una fattura da pagare risulta scaduta quando il documento non indica la scadenza
+    // (0 = senza scadenza indicata non è mai scaduta).
+    public int GiorniScadenzaPredefiniti { get; set; } = 30;
 }
 
 // Impostazioni dell'utente in un file JSON nella cartella dati: sopravvive agli aggiornamenti e si estende aggiungendo proprietà.
@@ -45,6 +49,7 @@ public class ImpostazioniService
                 CartellaImportazione = _corrente.CartellaImportazione,
                 CartellaEsportazione = _corrente.CartellaEsportazione,
                 AziendaSaltata = _corrente.AziendaSaltata,
+                GiorniScadenzaPredefiniti = _corrente.GiorniScadenzaPredefiniti,
             };
         }
     }

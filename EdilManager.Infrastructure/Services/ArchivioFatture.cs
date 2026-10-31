@@ -65,6 +65,42 @@ public class ArchivioFatture(ImpostazioniService impostazioni)
         }
     }
 
+    // Una fattura assegnata a mano a un cantiere: i file già in archivio (cartella del fornitore) vengono copiati anche nella
+    // cartella del cantiere, che nasce così alla prima fattura. Non si cancella nulla dalle cartelle di altri cantieri.
+    // Restituisce un avviso se qualche copia non è riuscita.
+    public string? CopiaInCantiere(EsitoSalvataggio fattura, string cantiere)
+    {
+        if (Radice is not { } radice) return null;
+        try
+        {
+            var cartellaFornitore = Path.Combine(radice, CartellaFornitori, NomeCartella(fattura.Fornitore));
+            if (!Directory.Exists(cartellaFornitore)) return null;
+
+            var baseNome = Path.GetFileNameWithoutExtension(NomeFile(fattura, ".xml"));
+            string? avviso = null;
+            foreach (var origine in Directory.EnumerateFiles(cartellaFornitore))
+            {
+                if (!string.Equals(Path.GetFileNameWithoutExtension(origine), baseNome, StringComparison.OrdinalIgnoreCase)) continue;
+                var destinazione = Path.Combine(radice, CartellaCantieri, NomeCartella(cantiere), Path.GetFileName(origine));
+                try
+                {
+                    if (PercorsoLibero(origine, destinazione) is not { } percorso) continue;
+                    Directory.CreateDirectory(Path.GetDirectoryName(percorso)!);
+                    File.Copy(origine, percorso);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+                {
+                    avviso = $"Copia in archivio non riuscita ({destinazione}): {ex.Message}";
+                }
+            }
+            return avviso;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return $"Copia in archivio non riuscita: {ex.Message}";
+        }
+    }
+
     // Restituisce un avviso se la cartella non si è potuta rinominare (il nome nel database è comunque cambiato).
     public string? RinominaCartellaCantiere(string vecchioNome, string nuovoNome)
     {

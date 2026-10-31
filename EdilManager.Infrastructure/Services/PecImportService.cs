@@ -123,6 +123,8 @@ public class PecImportService
 
         // Associa cantiere per CUP se presente
         string? nomeCantiere = null;
+        int? cantiereId = null;
+        var cantiereCreato = false;
         if (!string.IsNullOrWhiteSpace(cup))
         {
             var cantiere = await _db.Cantieri.FirstOrDefaultAsync(c => c.CUP == cup, ct);
@@ -131,9 +133,11 @@ public class PecImportService
                 cantiere = new Cantiere { CUP = cup, Nome = cup };
                 _db.Cantieri.Add(cantiere);
                 await _db.SaveChangesAsync(ct);
+                cantiereCreato = true;
             }
             fattura.CantiereId = cantiere.Id;
             nomeCantiere = cantiere.Nome;
+            cantiereId = cantiere.Id;
         }
 
         // Evita duplicati (stesso fornitore + numero + data)
@@ -150,6 +154,7 @@ public class PecImportService
 
         // Nomi dal database (non dal file): una fattura già presente può avere fornitore/cantiere rinominati.
         return new EsitoSalvataggio(!esiste, fornitoreSalvato.Denominazione, nomeCantiere,
-            fattura.NumeroDocumento, fattura.DataDocumento);
+            fattura.NumeroDocumento, fattura.DataDocumento, cantiereId, cantiereCreato, fattura.TotaleDocumento,
+            fattura.Righe.Select(r => r.Descrizione).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d)));
     }
 }

@@ -35,6 +35,8 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
                 TotaleDocumento = f.TotaleDocumento,
                 ModalitaPagamento = f.ModalitaPagamento,
                 DataScadenzaPagamento = f.DataScadenzaPagamento,
+                Stato = f.Stato,
+                DataPagamento = f.DataPagamento,
                 ImportoPagamento = f.ImportoPagamento,
                 Fornitore = new FornitoreDetailDto
                 {
@@ -50,7 +52,7 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
                 },
                 Cantiere = f.Cantiere == null
                     ? null
-                    : new CantiereListDto { Id = f.Cantiere.Id, CUP = f.Cantiere.CUP, Nome = f.Cantiere.Nome },
+                    : new CantiereListDto { Id = f.Cantiere.Id, CUP = f.Cantiere.CUP, Nome = f.Cantiere.Nome, Interno = f.Cantiere.Interno },
                 Righe = f.Righe.OrderBy(r => r.Id).Select(r => new RigaFatturaDto
                 {
                     Id = r.Id,
@@ -65,6 +67,59 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
                 }).ToList(),
             })
             .FirstOrDefaultAsync(ct);
+    }
+
+    // Cambia lo stato di pagamento di più fatture in una volta. Pagata richiede la data del pagamento; negli altri stati
+    // la data viene tolta. Restituisce quante fatture sono state aggiornate (quelle cancellate nel frattempo si saltano).
+    public async Task<int> ImpostaStatoAsync(IReadOnlyCollection<int> ids, StatoPagamento stato, DateOnly? dataPagamento,
+        CancellationToken ct = default)
+    {
+        if (stato == StatoPagamento.Pagata && dataPagamento is null)
+            throw new InvalidOperationException("Indica la data del pagamento.");
+        if (stato == StatoPagamento.Pagata && dataPagamento > DateOnly.FromDateTime(DateTime.Today))
+            throw new InvalidOperationException("La data del pagamento non può essere nel futuro.");
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var fatture = await db.Fatture.Where(f => ids.Contains(f.Id)).ToListAsync(ct);
+        foreach (var f in fatture)
+        {
+            f.Stato = stato;
+            f.DataPagamento = stato == StatoPagamento.Pagata ? dataPagamento : null;
+        }
+        await db.SaveChangesAsync(ct);
+        return fatture.Count;
+    }
+
+    public record EsitoAssegnazione(int Aggiornate, string? Avviso);
+
+    // Assegna (o toglie, con null) il cantiere a più fatture. Se l'archivio è attivo, i file delle fatture già archiviati
+    // vengono copiati anche nella cartella del nuovo cantiere. L'avviso dice se qualche copia non è riuscita.
+    public async Task<EsitoAssegnazione> ImpostaCantiereAsync(IReadOnlyCollection<int> ids, int? cantiereId,
+        CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        string? nomeCantiere = null;
+        if (cantiereId is { } cid)
+            nomeCantiere = await db.Cantieri.Where(c => c.Id == cid).Select(c => c.Nome).FirstOrDefaultAsync(ct)
+                           ?? throw new InvalidOperationException("Cantiere non trovato.");
+
+        var fatture = await db.Fatture.Include(f => f.Fornitore).Where(f => ids.Contains(f.Id)).ToListAsync(ct);
+        foreach (var f in fatture) f.CantiereId = cantiereId;
+        await db.SaveChangesAsync(ct);
+
+        string? avviso = null;
+        if (nomeCantiere is not null)
+        {
+            var avvisi = new List<string>();
+            foreach (var f in fatture)
+            {
+                var esito = new EsitoSalvataggio(false, f.Fornitore.Denominazione, nomeCantiere, f.NumeroDocumento, f.DataDocumento);
+                if (archivio.CopiaInCantiere(esito, nomeCantiere) is { } a) avvisi.Add(a);
+            }
+            if (avvisi.Count > 0)
+                avviso = $"Le fatture sono state assegnate, ma {avvisi.Count} copie nell'archivio non sono riuscite. {avvisi[0]}";
+        }
+        return new EsitoAssegnazione(fatture.Count, avviso);
     }
 
     // Sceglie il parser in base all'estensione del file.
@@ -137,6 +192,7 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
             string? motivo = null;
             Exception? eccezione = null;
             RisultatoArchivio? copia = null;
+            NuovoCantiere? nuovoCantiere = null;
             try
             {
                 if (new FileInfo(percorso).Length > DimensioneMassima)
@@ -147,14 +203,17 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
                 else
                 {
                     // La lettura del PDF è pesante: fuori dal thread dell'interfaccia.
-                    (esito, copia) = await Task.Run(async () =>
+                    (esito, copia, nuovoCantiere) = await Task.Run(async () =>
                     {
                         EsitoSalvataggio salvata;
                         await using (var stream = File.OpenRead(percorso))
                             salvata = await ImportaAsync(stream, percorso, CancellationToken.None, pdfRigoroso);
                         // Anche per le fatture già presenti: si copia ciò che manca nell'archivio. Una copia fallita
                         // non invalida l'import (la fattura è già nel database).
-                        return (salvata.Nuova ? EsitoImport.Importata : EsitoImport.Duplicata, archivio.Copia(percorso, salvata));
+                        var nuovo = salvata is { CantiereCreato: true, CantiereId: { } cid, Cantiere: { } cup }
+                            ? new NuovoCantiere(cid, cup, salvata.Fornitore, salvata.Numero, salvata.Data, salvata.Totale, salvata.Descrizione)
+                            : null;
+                        return (salvata.Nuova ? EsitoImport.Importata : EsitoImport.Duplicata, archivio.Copia(percorso, salvata), nuovo);
                     }, CancellationToken.None);
                 }
             }
@@ -175,6 +234,7 @@ public class FatturaService(IDbContextFactory<ApplicationDbContext> factory, Arc
                 default: risultato.Errori.Add(new FileScartato(nome, motivo!)); break;
             }
             risultato.Elaborati++;
+            if (nuovoCantiere is not null) risultato.NuoviCantieri.Add(nuovoCantiere);
             if (copia is not null)
             {
                 risultato.Copiate += copia.Copiate.Count;

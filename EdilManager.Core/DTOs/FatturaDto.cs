@@ -1,3 +1,5 @@
+using EdilManager.Core.Entities;
+
 namespace EdilManager.Core.DTOs;
 
 public class FatturaListDto
@@ -9,6 +11,8 @@ public class FatturaListDto
     public decimal TotaleDocumento { get; set; }
     public string? ModalitaPagamento { get; set; }
     public DateOnly? DataScadenzaPagamento { get; set; }
+    public StatoPagamento Stato { get; set; }
+    public DateOnly? DataPagamento { get; set; }
     public int FornitoreId { get; set; }
     public string Fornitore { get; set; } = string.Empty;
     public string? Cantiere { get; set; }
@@ -25,6 +29,8 @@ public class FatturaDetailDto
     public decimal TotaleDocumento { get; set; }
     public string? ModalitaPagamento { get; set; }
     public DateOnly? DataScadenzaPagamento { get; set; }
+    public StatoPagamento Stato { get; set; }
+    public DateOnly? DataPagamento { get; set; }
     public decimal? ImportoPagamento { get; set; }
     public FornitoreDetailDto Fornitore { get; set; } = null!;
     public CantiereListDto? Cantiere { get; set; }
@@ -53,7 +59,12 @@ public record ImportCartellaProgress(
     IReadOnlyList<string>? Copie = null, string? AvvisoArchivio = null);
 
 // Fattura salvata (o già presente) con fornitore e cantiere come stanno nel database: servono per archiviare il file.
-public record EsitoSalvataggio(bool Nuova, string Fornitore, string? Cantiere, string Numero, DateOnly Data);
+// CantiereCreato = true se il CUP della fattura ha fatto nascere un cantiere nuovo (con il CUP come nome provvisorio).
+public record EsitoSalvataggio(bool Nuova, string Fornitore, string? Cantiere, string Numero, DateOnly Data,
+    int? CantiereId = null, bool CantiereCreato = false, decimal Totale = 0, string? Descrizione = null);
+
+// Cantiere creato da un import, in attesa che l'utente gli dia un nome; la fattura è quella in cui è stato trovato il CUP.
+public record NuovoCantiere(int Id, string Cup, string Fornitore, string Numero, DateOnly Data, decimal Totale, string? Descrizione);
 
 public record FileScartato(string File, string Motivo);
 
@@ -67,6 +78,8 @@ public class ImportCartellaResult
     public int Copiate { get; set; }
     // Copie in archivio non riuscite: l'import di quelle fatture è comunque valido.
     public List<FileScartato> AvvisiArchivio { get; } = [];
+    // Cantieri nati da CUP nuovi in questo import (il nome è ancora il CUP).
+    public List<NuovoCantiere> NuoviCantieri { get; } = [];
     public int Importate { get; set; }
     public int Duplicate { get; set; }
     // File che non sono fatture valide (altri XML/PDF, importi incoerenti, scansioni...).

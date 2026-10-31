@@ -1,7 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EdilManager.Core;
 using EdilManager.Core.DTOs;
+using EdilManager.Core.Entities;
 using EdilManager.Desktop.Services;
+using EdilManager.Infrastructure.Services;
 
 namespace EdilManager.Desktop.ViewModels;
 
@@ -69,12 +72,23 @@ public partial class FatturaDetailViewModel : ObservableObject
     private readonly INavigationService _nav;
     private readonly DetailOpener _opener;
     private readonly int _fornitoreId;
-    private readonly int? _cantiereId;
+    private int? _cantiereId;
+    private readonly int _id;
+    private readonly CantiereFatture _cantieriFatture;
+    private readonly FatturaService _service;
+    private readonly StatoFatture _stati;
+    private readonly int _giorniScadenza;
 
-    public FatturaDetailViewModel(FatturaDetailDto fattura, INavigationService nav, DetailOpener opener)
+    public FatturaDetailViewModel(FatturaDetailDto fattura, INavigationService nav, DetailOpener opener,
+        FatturaService service, StatoFatture stati, ImpostazioniService impostazioni, CantiereFatture cantieriFatture)
     {
+        _cantieriFatture = cantieriFatture;
         _nav = nav;
         _opener = opener;
+        _service = service;
+        _stati = stati;
+        _id = fattura.Id;
+        _giorniScadenza = impostazioni.Corrente.GiorniScadenzaPredefiniti;
         _fornitoreId = fattura.Fornitore.Id;
         _cantiereId = fattura.Cantiere?.Id;
 
@@ -84,7 +98,7 @@ public partial class FatturaDetailViewModel : ObservableObject
         Scadenza = fattura.DataScadenzaPagamento?.ToString("dd/MM/yyyy") ?? string.Empty;
         Pagamento = fattura.ModalitaPagamento is { Length: > 0 } mp ? Decodifica(ModalitaPagamento, mp) : string.Empty;
         ImportoPagamento = fattura.ImportoPagamento is { } ip ? Euro(ip) : string.Empty;
-        Cantiere = fattura.Cantiere is { } c ? (c.Nome == c.CUP ? c.CUP : $"{c.Nome} ({c.CUP})") : string.Empty;
+        Cantiere = fattura.Cantiere?.Etichetta ?? string.Empty;
 
         var f = fattura.Fornitore;
         Fornitore = f.Denominazione;
@@ -98,6 +112,67 @@ public partial class FatturaDetailViewModel : ObservableObject
         TotaleDocumento = Euro(fattura.TotaleDocumento);
 
         Righe = fattura.Righe.Select(r => new RigaFatturaRow(r)).ToList();
+
+        _isNotaCredito = Documenti.IsNotaCredito(fattura.TipoDocumento);
+        AggiornaStato(fattura);
+    }
+
+    private readonly bool _isNotaCredito;
+
+    // Le note di credito non si pagano: niente stato e niente pulsanti.
+    public bool HasStato => !_isNotaCredito;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSegnaPagata), nameof(CanSegnaContestata))]
+    private StatoFattura _stato;
+
+    [ObservableProperty]
+    private string _statoTesto = string.Empty;
+
+    [ObservableProperty]
+    private string _scadenzaPresunta = string.Empty;
+
+    private StatoPagamento _statoSalvato;
+
+    public bool CanSegnaPagata => Stato != StatoFattura.Pagata;
+    public bool CanSegnaDaPagare => _statoSalvato != StatoPagamento.DaPagare;
+    public bool CanSegnaContestata => Stato != StatoFattura.InContestazione;
+
+    private void AggiornaStato(FatturaDetailDto f)
+    {
+        _statoSalvato = f.Stato;
+        var oggi = DateOnly.FromDateTime(DateTime.Today);
+        Stato = Pagamenti.Calcola(f.TipoDocumento, f.Stato, f.DataScadenzaPagamento, f.DataDocumento, _giorniScadenza, oggi);
+        StatoTesto = f.Stato == StatoPagamento.Pagata && f.DataPagamento is { } d
+            ? $"Pagata il {d:dd/MM/yyyy}"
+            : Pagamenti.Testo(Stato);
+        // Scadenza non scritta nel documento: si mostra quella presunta, dicendolo.
+        ScadenzaPresunta = f.DataScadenzaPagamento is null && Pagamenti.ScadenzaEffettiva(null, f.DataDocumento, _giorniScadenza) is { } p
+            ? $"{p:dd/MM/yyyy} (presunta)"
+            : string.Empty;
+        OnPropertyChanged(nameof(CanSegnaDaPagare));
+    }
+
+    [RelayCommand]
+    private Task SegnaPagataAsync() => CambiaStatoAsync(StatoPagamento.Pagata);
+
+    [RelayCommand]
+    private Task SegnaDaPagareAsync() => CambiaStatoAsync(StatoPagamento.DaPagare);
+
+    [RelayCommand]
+    private Task SegnaContestataAsync() => CambiaStatoAsync(StatoPagamento.InContestazione);
+
+    private async Task CambiaStatoAsync(StatoPagamento nuovo)
+    {
+        if (!await _stati.ImpostaAsync([_id], nuovo)) return;
+        try
+        {
+            if (await _service.GetByIdAsync(_id) is { } aggiornata) AggiornaStato(aggiornata);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Ricaricamento della fattura dopo il cambio di stato fallito", ex);
+        }
     }
 
     public string Titolo { get; }
@@ -106,7 +181,9 @@ public partial class FatturaDetailViewModel : ObservableObject
     public string Scadenza { get; }
     public string Pagamento { get; }
     public string ImportoPagamento { get; }
-    public string Cantiere { get; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCantiere))]
+    private string _cantiere = string.Empty;
 
     public string Fornitore { get; }
     public string PartitaIva { get; }
@@ -121,13 +198,30 @@ public partial class FatturaDetailViewModel : ObservableObject
     public IReadOnlyList<RigaFatturaRow> Righe { get; }
     public bool HasRighe => Righe.Count > 0;
     public bool NoRighe => Righe.Count == 0;
-    public bool HasCantiere => _cantiereId is not null;
+    // Vero anche quando il cantiere è stato appena assegnato: il campo è il testo da mostrare.
+    public bool HasCantiere => Cantiere.Length > 0;
 
     [RelayCommand]
     private Task OpenFornitoreAsync() => _opener.OpenFornitoreAsync(_fornitoreId);
 
     [RelayCommand]
     private Task OpenCantiereAsync() => _cantiereId is { } id ? _opener.OpenCantiereAsync(id) : Task.CompletedTask;
+
+    [RelayCommand]
+    private async Task AssegnaCantiereAsync()
+    {
+        if (!await _cantieriFatture.AssegnaAsync([_id])) return;
+        try
+        {
+            if (await _service.GetByIdAsync(_id) is not { } aggiornata) return;
+            _cantiereId = aggiornata.Cantiere?.Id;
+            Cantiere = aggiornata.Cantiere?.Etichetta ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Ricaricamento della fattura dopo l'assegnazione del cantiere fallito", ex);
+        }
+    }
 
     [RelayCommand]
     private void GoBack() => _nav.Pop();

@@ -12,6 +12,10 @@ public sealed class CantiereRow(CantiereListDto dto)
     public int Id { get; } = dto.Id;
     public string Nome { get; } = dto.Nome;
     public string CUP { get; } = dto.CUP;
+    public bool Interno { get; } = dto.Interno;
+    public string CupTesto { get; } = dto.CupTesto;
+    // Creato dall'import e non ancora nominato (il nome è il CUP).
+    public bool DaNominare { get; } = dto.DaNominare;
     public string FattureText { get; } = dto.FattureCount switch
     {
         0 => "Nessuna fattura",
@@ -21,7 +25,7 @@ public sealed class CantiereRow(CantiereListDto dto)
 
     public bool Corrisponde(string testo) =>
         Nome.Contains(testo, StringComparison.OrdinalIgnoreCase) ||
-        CUP.Contains(testo, StringComparison.OrdinalIgnoreCase);
+        (!Interno && CUP.Contains(testo, StringComparison.OrdinalIgnoreCase));
 }
 
 public partial class CantieriViewModel : ObservableObject, IReloadable
@@ -93,9 +97,17 @@ public partial class CantieriViewModel : ObservableObject, IReloadable
     private Task OpenAsync(CantiereRow row) => _opener.OpenCantiereAsync(row.Id);
 
     [RelayCommand]
+    private async Task NewAsync()
+    {
+        var form = new CantiereFormViewModel(_service, _dialogs, null, string.Empty, null);
+        if (await _dialogs.ShowAsync(form) is not true) return;
+        await ReloadAsync();
+    }
+
+    [RelayCommand]
     private async Task EditAsync(CantiereRow row)
     {
-        var form = new CantiereFormViewModel(_service, _dialogs, row.Id, row.Nome, row.CUP);
+        var form = new CantiereFormViewModel(_service, _dialogs, row.Id, row.Nome, row.CupTesto);
         if (await _dialogs.ShowAsync(form) is not true) return;
         await ReloadAsync();
         if (form.Avviso is not null) await _dialogs.MessageAsync("Archivio fatture", form.Avviso);

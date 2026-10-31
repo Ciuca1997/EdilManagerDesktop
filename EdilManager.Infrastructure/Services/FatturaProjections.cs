@@ -16,6 +16,8 @@ public static class FatturaProjections
         TotaleDocumento = f.TotaleDocumento,
         ModalitaPagamento = f.ModalitaPagamento,
         DataScadenzaPagamento = f.DataScadenzaPagamento,
+        Stato = f.Stato,
+        DataPagamento = f.DataPagamento,
         FornitoreId = f.FornitoreId,
         Fornitore = f.Fornitore.Denominazione,
         Cantiere = f.Cantiere != null ? f.Cantiere.Nome : null,

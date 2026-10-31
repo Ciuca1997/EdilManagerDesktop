@@ -32,7 +32,8 @@ public partial class CantiereDetailViewModel : ObservableObject
     private readonly int _id;
 
     public CantiereDetailViewModel(
-        CantiereDetailDto cantiere, CantiereService service, DialogService dialogs, INavigationService nav, DetailOpener opener)
+        CantiereDetailDto cantiere, CantiereService service, DialogService dialogs, INavigationService nav, DetailOpener opener,
+        ImpostazioniService impostazioni)
     {
         _service = service;
         _dialogs = dialogs;
@@ -40,10 +41,13 @@ public partial class CantiereDetailViewModel : ObservableObject
         _opener = opener;
         _id = cantiere.Id;
 
-        Cup = cantiere.CUP;
+        Cup = cantiere.Interno ? "senza CUP" : cantiere.CUP;
+        Interno = cantiere.Interno;
         Nome = cantiere.Nome;
 
-        Fatture = cantiere.Fatture.Select(f => new FatturaRow(f)).ToList();
+        var giorni = impostazioni.Corrente.GiorniScadenzaPredefiniti;
+        var oggi = DateOnly.FromDateTime(DateTime.Today);
+        Fatture = cantiere.Fatture.Select(f => new FatturaRow(f, giorni, oggi)).ToList();
         Fornitori = cantiere.Fornitori.Select(f => new FornitoreRiepilogoRow(f)).ToList();
         Manodopera = cantiere.Manodopera.Select(m => new ManodoperaRow(m)).ToList();
         var ordinarie = cantiere.Manodopera.Sum(m => m.OreOrdinarie);
@@ -55,7 +59,11 @@ public partial class CantiereDetailViewModel : ObservableObject
         Totale = cantiere.TotaleFatture.ToString("N2", Formats.Italian) + " €";
     }
 
-    public string Cup { get; }
+    [ObservableProperty]
+    private string _cup;
+
+    [ObservableProperty]
+    private bool _interno;
 
     [ObservableProperty]
     private string _nome;
@@ -89,6 +97,17 @@ public partial class CantiereDetailViewModel : ObservableObject
         }
 
         if (form.Avviso is not null) await _dialogs.MessageAsync("Archivio fatture", form.Avviso);
+    }
+
+    [RelayCommand]
+    private async Task ImpostaCupAsync()
+    {
+        if (await _dialogs.ShowAsync(new ImpostaCupViewModel(_service, _dialogs, _id, Nome)) is not true) return;
+        if (await _service.GetByIdAsync(_id) is { } aggiornato)
+        {
+            Cup = aggiornato.CUP;
+            Interno = aggiornato.Interno;
+        }
     }
 
     [RelayCommand]

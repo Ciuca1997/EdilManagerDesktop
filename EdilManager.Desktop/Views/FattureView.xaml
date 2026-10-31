@@ -29,6 +29,15 @@
         </Grid>
         <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
 
+        <Grid DockPanel.Dock="Top" Margin="24,12,24,0">
+            <ComboBox Width="220" HorizontalAlignment="Left" ItemsSource="{Binding Filtri}"
+                      SelectedItem="{Binding Filtro}" DisplayMemberPath="Testo"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      materialDesign:HintAssist.Hint="Stato" />
+            <TextBlock Text="{Binding RiepilogoElenco}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                       Foreground="{StaticResource MutedBrush}" />
+        </Grid>
+
         <Grid Margin="24,8,24,16">
             <ProgressBar IsIndeterminate="True" Style="{StaticResource MaterialDesignCircularProgressBar}"
                          Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -47,9 +56,13 @@
                            Foreground="{StaticResource MutedBrush}" />
             </StackPanel>
 
-            <DataGrid ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
+            <TextBlock Text="Nessuna fattura con questo stato." HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{StaticResource MutedBrush}"
+                       Visibility="{Binding NessunRisultato, Converter={StaticResource BoolToVis}}" />
+
+            <DataGrid x:Name="Griglia" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
                       CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
-                      CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
+                      CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Extended"
                       SelectionUnit="FullRow" GridLinesVisibility="Horizontal" BorderThickness="0"
                       Background="Transparent" RowBackground="Transparent"
                       HorizontalGridLinesBrush="{StaticResource DividerBrush}">
@@ -59,6 +72,15 @@
                         <Setter Property="Cursor" Value="Hand" />
                     </Style>
                 </DataGrid.RowStyle>
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Segna come pagata…" Tag="Pagata" Click="OnImpostaStato" />
+                        <MenuItem Header="Segna come da pagare" Tag="DaPagare" Click="OnImpostaStato" />
+                        <MenuItem Header="Segna come in contestazione" Tag="InContestazione" Click="OnImpostaStato" />
+                        <Separator />
+                        <MenuItem Header="Assegna cantiere…" Click="OnAssegnaCantiere" />
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="120" />
                     <DataGridTextColumn Header="Numero" Binding="{Binding Numero}" Width="110" />
@@ -70,6 +92,8 @@
                                         ElementStyle="{StaticResource RightCell}"
                                         CellStyle="{StaticResource RightCellContainer}" />
                     <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="110" />
+                    <DataGridTextColumn Header="Stato" Binding="{Binding StatoTesto}" Width="160"
+                                        ElementStyle="{StaticResource StatoFatturaText}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

@@ -44,6 +44,10 @@ public partial class DashboardViewModel : ObservableObject, IReloadable
             Cards.Add(new StatCard("Cantieri", s.Cantieri.ToString(), "Crane"));
             Cards.Add(new StatCard("Fatture", s.Fatture.ToString(), "ReceiptTextOutline",
                 $"Totale {s.TotaleFatture.ToString("N2", Formats.Italian)} €"));
+            Cards.Add(new StatCard("Da pagare", s.FattureDaPagare.ToString(), "CashClock",
+                $"Totale {s.TotaleDaPagare.ToString("N2", Formats.Italian)} €"));
+            Cards.Add(new StatCard("Scadute", s.FattureScadute.ToString(), "AlertCircleOutline",
+                s.FattureScadute == 0 ? "Nessuna fattura scaduta" : $"Totale {s.TotaleScaduto.ToString("N2", Formats.Italian)} €"));
             Cards.Add(new StatCard($"Ore a {mese}",
                 (s.OreOrdinarieMese + s.OreStraordinarieMese).ToString("0.#", Formats.Italian), "ClockOutline",
                 $"di cui {s.OreStraordinarieMese.ToString("0.#", Formats.Italian)} straordinarie"));

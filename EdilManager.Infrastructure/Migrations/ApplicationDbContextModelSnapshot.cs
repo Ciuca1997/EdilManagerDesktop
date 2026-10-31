@@ -76,6 +76,9 @@ namespace EdilManager.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Interno")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -152,6 +155,9 @@ namespace EdilManager.Infrastructure.Migrations
                     b.Property<DateOnly>("DataDocumento")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("DataPagamento")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly?>("DataScadenzaPagamento")
                         .HasColumnType("TEXT");
 
@@ -169,6 +175,9 @@ namespace EdilManager.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("Stato")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("TipoDocumento")
                         .IsRequired()

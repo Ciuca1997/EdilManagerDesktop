@@ -8,7 +8,7 @@ public sealed record CantiereOption(int? Id, string Nome)
     public static readonly CantiereOption Nessuno = new(null, "Nessun cantiere");
 
     public static CantiereOption Da(CantiereListDto c) =>
-        new(c.Id, c.Nome == c.CUP ? c.CUP : $"{c.Nome} ({c.CUP})");
+        new(c.Id, c.Etichetta);
 
     // Elenco completo per un menu: "Nessun cantiere" in testa, poi i cantieri per nome.
     public static List<CantiereOption> Elenco(IEnumerable<CantiereListDto> cantieri) =>

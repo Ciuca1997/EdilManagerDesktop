@@ -4,11 +4,15 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              Width="440">
     <StackPanel Margin="24">
-        <TextBlock Text="Rinomina cantiere" FontSize="20" FontWeight="SemiBold" />
-        <TextBlock Margin="0,12,0,16" Foreground="{StaticResource MutedBrush}">
+        <TextBlock Text="{Binding Titolo}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Margin="0,12,0,16" Foreground="{StaticResource MutedBrush}"
+                   Visibility="{Binding HasCup, Converter={StaticResource BoolToVis}}">
             <Run Text="CUP:" />
             <Run Text="{Binding Cup, Mode=OneWay}" />
         </TextBlock>
+        <TextBlock Margin="0,12,0,16" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
+                   Text="{Binding Descrizione}"
+                   Visibility="{Binding HasDescrizione, Converter={StaticResource BoolToVis}}" />
 
         <TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
                  Style="{StaticResource MaterialDesignOutlinedTextBox}"

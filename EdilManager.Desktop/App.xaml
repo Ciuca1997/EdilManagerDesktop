@@ -22,6 +22,25 @@
             <SolidColorBrush x:Key="WarningBrush" Color="#EF6C00" />
             <SolidColorBrush x:Key="MutedBrush" Color="#5F6368" />
             <SolidColorBrush x:Key="DividerBrush" Color="#1F000000" />
+            <SolidColorBrush x:Key="SuccessBrush" Color="#2E7D32" />
+
+            <!-- Stato di pagamento di una fattura: il DataContext deve avere una proprietà Stato di tipo StatoFattura -->
+            <Style x:Key="StatoFatturaText" TargetType="TextBlock">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Stato}" Value="Scaduta">
+                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Stato}" Value="Pagata">
+                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Stato}" Value="InContestazione">
+                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
             <Style x:Key="PageTitle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="22" />
@@ -122,6 +141,18 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:CantiereFormViewModel}">
                 <views:CantiereFormView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:PagamentoFormViewModel}">
+                <views:PagamentoFormView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:NuovoCantiereViewModel}">
+                <views:NuovoCantiereView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AssegnaCantiereViewModel}">
+                <views:AssegnaCantiereView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ImpostaCupViewModel}">
+                <views:ImpostaCupView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:DipendentiViewModel}">
                 <views:DipendentiView />

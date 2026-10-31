@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EdilManager.Core.DTOs;
 using EdilManager.Desktop.Services;
+using EdilManager.Infrastructure.Services;
 
 namespace EdilManager.Desktop.ViewModels;
 
@@ -10,7 +11,8 @@ public partial class FornitoreDetailViewModel : ObservableObject
     private readonly INavigationService _nav;
     private readonly DetailOpener _opener;
 
-    public FornitoreDetailViewModel(FornitoreDetailDto fornitore, INavigationService nav, DetailOpener opener)
+    public FornitoreDetailViewModel(FornitoreDetailDto fornitore, INavigationService nav, DetailOpener opener,
+        ImpostazioniService impostazioni)
     {
         _nav = nav;
         _opener = opener;
@@ -21,7 +23,9 @@ public partial class FornitoreDetailViewModel : ObservableObject
         Indirizzo = FatturaDetailViewModel.FormattaIndirizzo(fornitore);
         Email = fornitore.Email ?? string.Empty;
 
-        Fatture = fornitore.Fatture.Select(f => new FatturaRow(f)).ToList();
+        var giorni = impostazioni.Corrente.GiorniScadenzaPredefiniti;
+        var oggi = DateOnly.FromDateTime(DateTime.Today);
+        Fatture = fornitore.Fatture.Select(f => new FatturaRow(f, giorni, oggi)).ToList();
         FattureText = Fatture.Count switch { 0 => "Nessuna fattura", 1 => "1 fattura", var n => $"{n} fatture" };
         Totale = fornitore.TotaleFatture.ToString("N2", Formats.Italian) + " €";
     }

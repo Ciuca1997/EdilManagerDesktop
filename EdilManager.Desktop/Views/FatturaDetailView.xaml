@@ -50,19 +50,36 @@
                         <TextBlock Text="Tipo documento" Style="{StaticResource FieldLabel}" />
                         <TextBlock Text="{Binding Tipo}" Style="{StaticResource FieldValue}" />
                     </StackPanel>
-                    <StackPanel Visibility="{Binding Cantiere, Converter={StaticResource HasText}}">
+                    <StackPanel>
                         <TextBlock Text="Cantiere" Style="{StaticResource FieldLabel}" />
-                        <TextBlock Style="{StaticResource FieldValue}">
+                        <TextBlock Style="{StaticResource FieldValue}"
+                                   Visibility="{Binding Cantiere, Converter={StaticResource HasText}}">
                             <Hyperlink Command="{Binding OpenCantiereCommand}" ToolTip="Apri il cantiere">
                                 <Run Text="{Binding Cantiere, Mode=OneWay}" />
                             </Hyperlink>
                         </TextBlock>
+                        <TextBlock Text="Nessun cantiere"
+                                   Foreground="{StaticResource MutedBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource FieldValue}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasCantiere}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button Content="Assegna cantiere…" Margin="0,6,0,0" HorizontalAlignment="Left"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Command="{Binding AssegnaCantiereCommand}" />
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Visibility="{Binding Pagamento, Converter={StaticResource HasText}}">
+                <StackPanel Grid.Column="2">
                     <TextBlock Text="PAGAMENTO" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
-                    <StackPanel Margin="0,0,0,6">
+                    <StackPanel Margin="0,0,0,6" Visibility="{Binding Pagamento, Converter={StaticResource HasText}}">
                         <TextBlock Text="Modalità" Style="{StaticResource FieldLabel}" />
                         <TextBlock Text="{Binding Pagamento}" Style="{StaticResource FieldValue}" />
                     </StackPanel>
@@ -70,9 +87,29 @@
                         <TextBlock Text="Scadenza" Style="{StaticResource FieldLabel}" />
                         <TextBlock Text="{Binding Scadenza}" Style="{StaticResource FieldValue}" />
                     </StackPanel>
-                    <StackPanel Visibility="{Binding ImportoPagamento, Converter={StaticResource HasText}}">
+                    <StackPanel Margin="0,0,0,6" Visibility="{Binding ScadenzaPresunta, Converter={StaticResource HasText}}">
+                        <TextBlock Text="Scadenza" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding ScadenzaPresunta}" Style="{StaticResource FieldValue}"
+                                   ToolTip="Il documento non indica la scadenza: è la data della fattura più i giorni impostati in Impostazioni." />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,6" Visibility="{Binding ImportoPagamento, Converter={StaticResource HasText}}">
                         <TextBlock Text="Importo" Style="{StaticResource FieldLabel}" />
                         <TextBlock Text="{Binding ImportoPagamento}" Style="{StaticResource FieldValue}" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding HasStato, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Stato" Style="{StaticResource FieldLabel}" />
+                        <TextBlock Text="{Binding StatoTesto}" Style="{StaticResource StatoFatturaText}" FontSize="16" />
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Content="Segna pagata…" Margin="0,0,8,4" Command="{Binding SegnaPagataCommand}"
+                                    IsEnabled="{Binding CanSegnaPagata}" />
+                            <Button Content="Da pagare" Margin="0,0,8,4" Command="{Binding SegnaDaPagareCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    IsEnabled="{Binding CanSegnaDaPagare}" />
+                            <Button Content="In contestazione" Margin="0,0,0,4" Command="{Binding SegnaContestataCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    IsEnabled="{Binding CanSegnaContestata}" />
+                        </WrapPanel>
                     </StackPanel>
                 </StackPanel>
             </Grid>

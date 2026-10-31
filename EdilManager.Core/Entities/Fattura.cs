@@ -13,6 +13,10 @@ public class Fattura
     public DateOnly? DataScadenzaPagamento { get; set; }
     public decimal? ImportoPagamento { get; set; }
 
+    // Stato di pagamento (la scadenza «Scaduta» si calcola); DataPagamento ha senso solo se Pagata.
+    public StatoPagamento Stato { get; set; }
+    public DateOnly? DataPagamento { get; set; }
+
     public int FornitoreId { get; set; }
     public Fornitore Fornitore { get; set; } = null!;
 

@@ -25,7 +25,14 @@
             <StackPanel Orientation="Horizontal">
                 <StackPanel Margin="0,0,48,0">
                     <TextBlock Text="CUP" Style="{StaticResource FieldLabel}" />
-                    <TextBlock Text="{Binding Cup}" Style="{StaticResource FieldValue}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Cup}" Style="{StaticResource FieldValue}" VerticalAlignment="Center" />
+                        <Button Content="Imposta CUP" Margin="12,0,0,0" Padding="10,0"  Height="26"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                ToolTip="Quando arriva il CUP vero di questo lavoro"
+                                Command="{Binding ImpostaCupCommand}"
+                                Visibility="{Binding Interno, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </StackPanel>
                 <StackPanel Margin="0,0,48,0">
                     <TextBlock Text="Fatture" Style="{StaticResource FieldLabel}" />
@@ -150,6 +157,8 @@
                                             ElementStyle="{StaticResource RightCell}"
                                             CellStyle="{StaticResource RightCellContainer}" />
                         <DataGridTextColumn Header="Scadenza" Binding="{Binding Scadenza}" Width="110" />
+                        <DataGridTextColumn Header="Stato" Binding="{Binding StatoTesto}" Width="150"
+                                            ElementStyle="{StaticResource StatoFatturaText}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>

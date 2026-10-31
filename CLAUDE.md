@@ -114,6 +114,18 @@ Come funziona l'interfaccia:
   viene mostrato nel riepilogo. Il dialogo si chiude solo dopo `Shown` (la View è caricata), altrimenti `DialogHost.Close` fallisce.
   Provato pilotando l'app vera con UI Automation (script usa e getta): avanzamento, annulla, riepilogo parziale.
 - **Cantieri:** elenco con CUP e numero di fatture, ricerca per CUP o nome, rinomina (matita). Si creano da soli importando fatture con un CUP.
+  **Nome dei nuovi cantieri:** un CUP mai visto crea un cantiere che si chiama come il CUP; a fine importazione (`FattureViewModel.NominaNuoviCantieriAsync`)
+  compare un dialogo per ognuno (`NuovoCantiereViewModel`) con la fattura in cui è stato trovato (fornitore, numero, data, totale, prima riga) e il campo
+  del nome. Salvare usa `CantiereService.RenameAsync`, quindi anche la cartella dell'archivio prende il nome scelto. «Più tardi» lo lascia così
+  (nell'elenco ha l'etichetta «da nominare»: nome uguale al CUP), «Salta tutti» smette di chiedere. Il rilevamento viene da
+  `EsitoSalvataggio.CantiereCreato` → `ImportCartellaResult.NuoviCantieri`.
+  **Cantieri senza CUP** (pulsante «Nuovo cantiere»; `Cantiere.Interno`, `CantiereService.CreaInternoAsync`): hanno un codice interno `INT-0001`, `INT-0002`...
+  nel campo CUP (mantiene l'indice unico e non può coincidere con un CUP vero), ma l'interfaccia scrive «senza CUP» (`CantiereListDto.CupTesto`/`Etichetta`).
+  Le fatture si assegnano a mano: clic destro nell'elenco fatture (anche più righe) o pulsante nel dettaglio (`CantiereFatture`, `FatturaService.ImpostaCantiereAsync`);
+  con l'archivio attivo i file già archiviati sotto il fornitore vengono copiati anche nella cartella del cantiere, che nasce così alla prima fattura
+  (niente cartella alla creazione; i file nelle cartelle di altri cantieri non si cancellano). Quando arriva il CUP vero, «Imposta CUP» nel dettaglio
+  lo sostituisce al codice interno (`ImpostaCupAsync`, formato controllato da `Cup` in Core): le fatture restano collegate perché puntano all'id. Se quel CUP
+  appartiene già a un altro cantiere si rifiuta, senza unire i due cantieri.
   Non si può dare a un cantiere un nome già usato da un altro (o che per Windows darebbe la stessa cartella dell'archivio).
   Doppio clic sulla riga apre il **dettaglio** (`CantiereDetailViewModel`, `CantiereService.GetByIdAsync`): CUP, totale fatturato,
   riepilogo per fornitore, elenco fatture e pulsante «Rinomina».
@@ -130,6 +142,14 @@ Come funziona l'interfaccia:
   Dall'elenco (doppio clic sulla riga o freccia a destra) si apre il **dettaglio fattura** (`FatturaDetailViewModel`/`FatturaDetailView`,
   dati da `FatturaService.GetByIdAsync`): fornitore, documento, pagamento, righe e totali. I codici SDI (TDxx, MPxx) sono tradotti in testo.
   Le fatture importate da PDF hanno le righe solo se il parser le ha lette con la somma coerente; altrimenti la schermata lo dice.
+- **Stato di pagamento delle fatture** (`Fattura.Stato` + `DataPagamento`, `Pagamenti` in Core, `FatturaService.ImpostaStatoAsync`, `StatoFatture` nel Desktop):
+  nel database si salvano solo *Da pagare*, *Pagata* (con la data) e *In contestazione*; **«Scaduta» non è salvata ma calcolata**
+  (da pagare con la scadenza passata), così non resta mai indietro. Se il documento non ha la scadenza (spesso nei PDF) si usa data fattura +
+  `Impostazioni.GiorniScadenzaPredefiniti` (30; con 0 non scade mai), mostrata tra parentesi o come «(presunta)». Le note di credito non hanno stato.
+  Le fatture già presenti all'aggiornamento sono «Da pagare» (migrazione `StatoPagamentoFatture`). Elenco fatture: filtro per stato,
+  colonna Stato, selezione multipla e clic destro per cambiare stato a più fatture (per «Pagata» chiede la data, `PagamentoFormViewModel`);
+  stessa colonna nei dettagli di cantiere e fornitore; nel dettaglio fattura i pulsanti di cambio stato; in dashboard le card «Da pagare» e «Scadute»
+  (le contestate non contano); in Impostazioni il campo dei giorni.
 
 Esiste nel codice ma **non ha ancora una schermata**: import da PEC (`PecImportService`).
 

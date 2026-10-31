@@ -24,6 +24,7 @@ public partial class ImpostazioniViewModel : ObservableObject
         _cartellaArchivio = corrente.CartellaArchivio ?? string.Empty;
         _cartellaImportazione = corrente.CartellaImportazione ?? string.Empty;
         _cartellaEsportazione = corrente.CartellaEsportazione ?? string.Empty;
+        _giorniScadenza = corrente.GiorniScadenzaPredefiniti.ToString();
     }
 
     // --- Dati dell'azienda
@@ -192,6 +193,26 @@ public partial class ImpostazioniViewModel : ObservableObject
         {
             return false;
         }
+    }
+
+    // --- Scadenza presunta delle fatture
+
+    [ObservableProperty]
+    private string _giorniScadenza;
+
+    // Si salva appena il valore è valido; se non lo è, l'errore compare e resta salvato l'ultimo valore buono.
+    partial void OnGiorniScadenzaChanged(string value)
+    {
+        if (!int.TryParse(value.Trim(), out var giorni) || giorni is < 0 or > 365)
+        {
+            ErrorMessage = "I giorni di scadenza devono essere un numero intero da 0 a 365.";
+            return;
+        }
+        Applica(() =>
+        {
+            _impostazioni.Modifica(i => i.GiorniScadenzaPredefiniti = giorni);
+            AppLog.Trace($"IMPOSTAZIONI giorni di scadenza predefiniti: {giorni}");
+        });
     }
 
     // --- Comuni

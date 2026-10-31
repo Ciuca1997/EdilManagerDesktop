@@ -5,13 +5,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EdilManager.Core;
 using EdilManager.Core.DTOs;
+using EdilManager.Core.Entities;
 using EdilManager.Desktop.Services;
 using EdilManager.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EdilManager.Desktop.ViewModels;
 
-public sealed class FatturaRow(FatturaListDto dto)
+public sealed class FatturaRow(FatturaListDto dto, int giorniScadenza, DateOnly oggi)
 {
     public int Id { get; } = dto.Id;
     public string Data { get; } = dto.DataDocumento.ToString("dd/MM/yyyy");
@@ -20,9 +21,26 @@ public sealed class FatturaRow(FatturaListDto dto)
     public string Cantiere { get; } = dto.Cantiere ?? "-";
     public string Tipo { get; } = dto.TipoDocumento;
     // Le note di credito si mostrano in negativo, coerente con i totali delle pagine di cantiere e fornitore.
-    public string Totale { get; } = Documenti.ConSegno(dto.TipoDocumento, dto.TotaleDocumento).ToString("N2", Formats.Italian) + " €";
-    public string Scadenza { get; } = dto.DataScadenzaPagamento?.ToString("dd/MM/yyyy") ?? "-";
+    public decimal TotaleConSegno { get; } = Documenti.ConSegno(dto.TipoDocumento, dto.TotaleDocumento);
+    public string Totale => TotaleConSegno.ToString("N2", Formats.Italian) + " €";
+
+    // Scadenza scritta nella fattura; se manca, quella presunta (data + giorni predefiniti) tra parentesi.
+    public string Scadenza { get; } = Documenti.IsNotaCredito(dto.TipoDocumento)
+        ? "-"
+        : dto.DataScadenzaPagamento is { } s
+            ? s.ToString("dd/MM/yyyy")
+            : Pagamenti.ScadenzaEffettiva(null, dto.DataDocumento, giorniScadenza) is { } p ? $"({p:dd/MM/yyyy})" : "-";
+
+    public StatoFattura Stato { get; } = Pagamenti.Calcola(
+        dto.TipoDocumento, dto.Stato, dto.DataScadenzaPagamento, dto.DataDocumento, giorniScadenza, oggi);
+    public string StatoTesto { get; } = dto.Stato == StatoPagamento.Pagata && dto.DataPagamento is { } d
+        && !Documenti.IsNotaCredito(dto.TipoDocumento)
+            ? $"Pagata il {d:dd/MM/yyyy}"
+            : Pagamenti.Testo(Pagamenti.Calcola(
+                dto.TipoDocumento, dto.Stato, dto.DataScadenzaPagamento, dto.DataDocumento, giorniScadenza, oggi));
 }
+
+public sealed record FiltroStato(string Testo, Func<StatoFattura, bool> Accetta);
 
 public partial class FattureViewModel : ObservableObject, IReloadable
 {
@@ -31,10 +49,18 @@ public partial class FattureViewModel : ObservableObject, IReloadable
     private readonly INavigationService _nav;
     private readonly IServiceProvider _services;
     private readonly ImpostazioniService _impostazioni;
+    private readonly StatoFatture _stati;
+    private readonly CantiereFatture _cantieriFatture;
+    private readonly CantiereService _cantieri;
+    private List<FatturaListDto> _tutte = [];
 
     public FattureViewModel(FatturaService service, DialogService dialogs, INavigationService nav, IServiceProvider services,
-        ImpostazioniService impostazioni)
+        ImpostazioniService impostazioni, StatoFatture stati, CantiereFatture cantieriFatture, CantiereService cantieri)
     {
+        _stati = stati;
+        _cantieriFatture = cantieriFatture;
+        _cantieri = cantieri;
+        _filtro = Filtri[0];
         _service = service;
         _dialogs = dialogs;
         _nav = nav;
@@ -46,6 +72,55 @@ public partial class FattureViewModel : ObservableObject, IReloadable
 
     public ObservableCollection<FatturaRow> Rows { get; } = [];
 
+    // «Da pagare» comprende le scadute (che sono da pagare con la scadenza passata).
+    public IReadOnlyList<FiltroStato> Filtri { get; } =
+    [
+        new("Tutte le fatture", _ => true),
+        new("Da pagare", s => s is StatoFattura.DaPagare or StatoFattura.Scaduta),
+        new("Scadute", s => s == StatoFattura.Scaduta),
+        new("Pagate", s => s == StatoFattura.Pagata),
+        new("In contestazione", s => s == StatoFattura.InContestazione),
+    ];
+
+    [ObservableProperty]
+    private FiltroStato _filtro;
+
+    partial void OnFiltroChanged(FiltroStato value) => Applica();
+
+    // Fatture visibili col filtro scelto e totale (le note di credito sottraggono).
+    [ObservableProperty]
+    private string _riepilogoElenco = string.Empty;
+
+    private void Applica()
+    {
+        var giorni = _impostazioni.Corrente.GiorniScadenzaPredefiniti;
+        var oggi = DateOnly.FromDateTime(DateTime.Today);
+        Rows.Clear();
+        foreach (var dto in _tutte)
+        {
+            var row = new FatturaRow(dto, giorni, oggi);
+            if (Filtro.Accetta(row.Stato)) Rows.Add(row);
+        }
+        var totale = Rows.Sum(r => r.TotaleConSegno);
+        RiepilogoElenco = Rows.Count == 0 ? string.Empty
+            : $"{Rows.Count} {(Rows.Count == 1 ? "fattura" : "fatture")} · totale {totale.ToString("N2", Formats.Italian)} €";
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(NessunRisultato));
+    }
+
+    // Elenco vuoto per colpa del filtro (non perché non ci sono fatture).
+    public bool NessunRisultato => !IsLoading && !HasError && Rows.Count == 0 && _tutte.Count > 0;
+
+    public async Task AssegnaCantiereAsync(IReadOnlyCollection<FatturaRow> selezione)
+    {
+        if (await _cantieriFatture.AssegnaAsync(selezione.Select(r => r.Id).ToList())) await ReloadAsync();
+    }
+
+    public async Task ImpostaStatoAsync(IReadOnlyCollection<FatturaRow> selezione, StatoPagamento stato)
+    {
+        if (await _stati.ImpostaAsync(selezione.Select(r => r.Id).ToList(), stato)) await ReloadAsync();
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     private bool _isLoading;
@@ -56,7 +131,7 @@ public partial class FattureViewModel : ObservableObject, IReloadable
     private string? _errorMessage;
 
     public bool HasError => ErrorMessage is not null;
-    public bool IsEmpty => !IsLoading && !HasError && Rows.Count == 0;
+    public bool IsEmpty => !IsLoading && !HasError && _tutte.Count == 0;
 
     public async Task ReloadAsync()
     {
@@ -64,9 +139,8 @@ public partial class FattureViewModel : ObservableObject, IReloadable
         ErrorMessage = null;
         try
         {
-            var list = await _service.GetAllAsync();
-            Rows.Clear();
-            foreach (var dto in list) Rows.Add(new FatturaRow(dto));
+            _tutte = await _service.GetAllAsync();
+            Applica();
         }
         catch (Exception ex)
         {
@@ -226,6 +300,34 @@ public partial class FattureViewModel : ObservableObject, IReloadable
         AppLog.Trace($"IMPORT {(risultato.Annullata ? "annullato" : "completato")}: elaborati {risultato.Elaborati} di {risultato.Totale}, " +
                      $"importate {risultato.Importate}, già presenti {risultato.Duplicate}, scartati {risultato.Scartati.Count}, errori {risultato.Errori.Count}");
         await _dialogs.MessageAsync(risultato.Annullata ? "Importazione annullata" : "Importazione completata", Riepilogo(risultato));
+        await NominaNuoviCantieriAsync(risultato.NuoviCantieri);
+    }
+
+    // Un CUP mai visto crea un cantiere che si chiama come il CUP: si chiede subito il nome, mostrando la fattura in cui è
+    // comparso. «Più tardi» lo lascia com'è (resta «da nominare» nell'elenco cantieri), «Salta tutti» smette di chiedere.
+    private async Task NominaNuoviCantieriAsync(IReadOnlyList<NuovoCantiere> nuovi)
+    {
+        var rinominati = false;
+        for (var i = 0; i < nuovi.Count; i++)
+        {
+            try
+            {
+                var dialogo = new NuovoCantiereViewModel(_cantieri, _dialogs, nuovi[i], i + 1, nuovi.Count);
+                var esito = await _dialogs.ShowAsync(dialogo);
+                if (esito is true)
+                {
+                    rinominati = true;
+                    if (dialogo.Avviso is not null) await _dialogs.MessageAsync("Archivio fatture", dialogo.Avviso);
+                }
+                else if (esito is "salta") break;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Nomina del nuovo cantiere fallita", ex);
+                await _dialogs.MessageAsync("Errore", ex.Message);
+            }
+        }
+        if (rinominati) await ReloadAsync();
     }
 
     private static void Registra(ImportCartellaProgress p)

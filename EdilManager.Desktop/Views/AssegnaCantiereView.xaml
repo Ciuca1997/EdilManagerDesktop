@@ -1,0 +1,23 @@
+<UserControl x:Class="EdilManager.Desktop.Views.AssegnaCantiereView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Width="440">
+    <StackPanel Margin="24">
+        <TextBlock Text="{Binding Titolo}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"
+                   Text="Serve per le fatture senza CUP, o per correggere il cantiere. «Nessun cantiere» toglie l'assegnazione." />
+        <ComboBox Margin="0,16,0,0" ItemsSource="{Binding Cantieri}" SelectedItem="{Binding Cantiere}"
+                  DisplayMemberPath="Nome" Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                  materialDesign:HintAssist.Hint="Cantiere" />
+        <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                   Text="Non ci sono ancora cantieri: creane uno dalla pagina Cantieri."
+                   Visibility="{Binding NessunCantiere, Converter={StaticResource BoolToVis}}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+            <Button Content="Annulla" Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Command="{Binding CancelCommand}" />
+            <Button Content="Assegna" Margin="12,0,0,0" Command="{Binding ConfirmCommand}" IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

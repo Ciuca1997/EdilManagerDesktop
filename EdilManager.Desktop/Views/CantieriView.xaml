@@ -7,9 +7,18 @@
                 BorderBrush="{StaticResource DividerBrush}">
             <Grid>
                 <TextBlock Text="Cantieri" Style="{StaticResource PageTitle}" />
-                <TextBox Width="300" HorizontalAlignment="Right" VerticalAlignment="Center"
-                         materialDesign:HintAssist.Hint="Cerca per CUP o nome"
-                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBox Width="300" VerticalAlignment="Center"
+                             materialDesign:HintAssist.Hint="Cerca per CUP o nome"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Margin="16,0,0,0" Command="{Binding NewCommand}"
+                            ToolTip="Per un lavoro senza CUP">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                            <TextBlock Text="Nuovo cantiere" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -26,7 +35,7 @@
                         Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="Nessun cantiere." HorizontalAlignment="Center"
                            Foreground="{StaticResource MutedBrush}" />
-                <TextBlock Text="I cantieri vengono creati automaticamente importando fatture che contengono un CUP."
+                <TextBlock Text="I cantieri vengono creati automaticamente importando fatture che contengono un CUP, oppure a mano con «Nuovo cantiere» se il lavoro non ha un CUP."
                            Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource MutedBrush}" />
             </StackPanel>
@@ -63,10 +72,16 @@
                                     </Border>
 
                                     <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Nome}" FontWeight="SemiBold" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Nome}" FontWeight="SemiBold" />
+                                            <TextBlock Text="da nominare" Margin="10,0,0,0" FontSize="11" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}"
+                                                       ToolTip="Il nome è ancora il CUP: usa la matita per dargli un nome"
+                                                       Visibility="{Binding DaNominare, Converter={StaticResource BoolToVis}}" />
+                                        </StackPanel>
                                         <TextBlock FontSize="12" Foreground="{StaticResource MutedBrush}">
                                             <Run Text="CUP:" />
-                                            <Run Text="{Binding CUP, Mode=OneWay}" />
+                                            <Run Text="{Binding CupTesto, Mode=OneWay}" />
                                             <Run Text="·" />
                                             <Run Text="{Binding FattureText, Mode=OneWay}" />
                                         </TextBlock>
